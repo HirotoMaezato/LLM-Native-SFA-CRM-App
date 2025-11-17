@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { MobileLayout } from '@/components/layout/mobile-layout';
 
 export const metadata: Metadata = {
   title: 'LLM Native SFA CRM App',
@@ -13,7 +14,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
-      <body>{children}</body>
+      <body>
+        <MobileLayout>{children}</MobileLayout>
+      </body>
     </html>
   );
 }
