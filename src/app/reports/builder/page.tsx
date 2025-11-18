@@ -234,7 +234,7 @@ export default function ReportBuilderPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-4 space-y-4 pb-20">
+      <div className="container mx-auto p-4 space-y-4 pb-24">
         {/* ヘッダー */}
         <div className="pt-4 flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => router.back()}>
@@ -530,7 +530,7 @@ export default function ReportBuilderPage() {
         )}
 
         {/* Navigation Buttons */}
-        <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4">
+        <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4 z-50">
           <div className="container mx-auto flex gap-3">
             {currentStepIndex > 0 && (
               <Button variant="outline" onClick={handlePrev} className="flex-1">
