@@ -61,3 +61,43 @@ export interface Trigger {
   }
   enabled: boolean
 }
+
+// Custom Report Types for Tableau-like BI functionality
+export type ChartType = "bar" | "pie" | "line" | "area"
+
+export type DimensionField = "status" | "area" | "product" | "team" | "priority" | "month"
+
+export type MetricType = "count" | "sum" | "average"
+
+export type MetricField = "amount" | "probability" | "count"
+
+export interface CustomReportConfig {
+  chartType: ChartType
+  dimension: DimensionField
+  metric: MetricType
+  metricField: MetricField
+  filters: {
+    status?: DealStatus[]
+    priority?: DealPriority[]
+    minAmount?: number
+    maxAmount?: number
+    area?: string[]
+    product?: string[]
+    team?: string[]
+    tags?: string[]
+    dateRange?: {
+      start?: string
+      end?: string
+    }
+  }
+  colors?: string[]
+}
+
+export interface CustomReport {
+  id: string
+  name: string
+  description?: string
+  config: CustomReportConfig
+  createdAt: string
+  updatedAt: string
+}
