@@ -1,6 +1,6 @@
 "use client"
 
-import { Deal, FilterCondition, Tag } from "@/types/deal"
+import { Deal, FilterCondition, Tag, CustomReport, CustomReportConfig } from "@/types/deal"
 
 // モックデータ
 const mockTags: Tag[] = [
@@ -97,11 +97,44 @@ const mockFilterConditions: FilterCondition[] = [
   }
 ]
 
+// カスタムレポートのモックデータ
+const mockCustomReports: CustomReport[] = [
+  {
+    id: "1",
+    name: "エリア別売上",
+    description: "各エリアの売上金額を比較",
+    config: {
+      chartType: "bar",
+      dimension: "area",
+      metric: "sum",
+      metricField: "amount",
+      filters: {}
+    },
+    createdAt: "2025-11-01",
+    updatedAt: "2025-11-01"
+  },
+  {
+    id: "2",
+    name: "ステータス分布",
+    description: "案件のステータス分布を可視化",
+    config: {
+      chartType: "pie",
+      dimension: "status",
+      metric: "count",
+      metricField: "count",
+      filters: {}
+    },
+    createdAt: "2025-11-10",
+    updatedAt: "2025-11-10"
+  }
+]
+
 // シンプルなストア実装（実際にはZustandやReduxを使用することを推奨）
 class DealsStore {
   private deals: Deal[] = mockDeals
   private filterConditions: FilterCondition[] = mockFilterConditions
   private tags: Tag[] = mockTags
+  private customReports: CustomReport[] = mockCustomReports
 
   getDeals(): Deal[] {
     return this.deals
@@ -217,6 +250,167 @@ class DealsStore {
     }
 
     return filtered
+  }
+
+  // カスタムレポート関連メソッド
+  getCustomReports(): CustomReport[] {
+    return this.customReports
+  }
+
+  getCustomReportById(id: string): CustomReport | undefined {
+    return this.customReports.find(report => report.id === id)
+  }
+
+  saveCustomReport(report: Omit<CustomReport, "id" | "createdAt" | "updatedAt">): CustomReport {
+    const newReport: CustomReport = {
+      ...report,
+      id: Date.now().toString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+    this.customReports.push(newReport)
+    return newReport
+  }
+
+  updateCustomReport(id: string, updates: Partial<Omit<CustomReport, "id" | "createdAt">>): CustomReport | undefined {
+    const index = this.customReports.findIndex(report => report.id === id)
+    if (index === -1) return undefined
+
+    this.customReports[index] = {
+      ...this.customReports[index],
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    }
+    return this.customReports[index]
+  }
+
+  deleteCustomReport(id: string): boolean {
+    const index = this.customReports.findIndex(report => report.id === id)
+    if (index === -1) return false
+
+    this.customReports.splice(index, 1)
+    return true
+  }
+
+  // レポートデータ生成メソッド
+  generateReportData(config: CustomReportConfig): Array<{ name: string; value: number }> {
+    let deals = [...this.deals]
+    const { filters, dimension, metric, metricField } = config
+
+    // フィルタリング
+    if (filters.status && filters.status.length > 0) {
+      deals = deals.filter(deal => filters.status!.includes(deal.status))
+    }
+    if (filters.priority && filters.priority.length > 0) {
+      deals = deals.filter(deal => filters.priority!.includes(deal.priority))
+    }
+    if (filters.minAmount !== undefined) {
+      deals = deals.filter(deal => deal.amount >= filters.minAmount!)
+    }
+    if (filters.maxAmount !== undefined) {
+      deals = deals.filter(deal => deal.amount <= filters.maxAmount!)
+    }
+    if (filters.area && filters.area.length > 0) {
+      deals = deals.filter(deal => deal.area && filters.area!.includes(deal.area))
+    }
+    if (filters.product && filters.product.length > 0) {
+      deals = deals.filter(deal => deal.product && filters.product!.includes(deal.product))
+    }
+    if (filters.team && filters.team.length > 0) {
+      deals = deals.filter(deal => deal.team && filters.team!.includes(deal.team))
+    }
+    if (filters.tags && filters.tags.length > 0) {
+      deals = deals.filter(deal =>
+        deal.tags.some(tag => filters.tags!.includes(tag.id))
+      )
+    }
+    if (filters.dateRange?.start) {
+      deals = deals.filter(deal => deal.expectedCloseDate >= filters.dateRange!.start!)
+    }
+    if (filters.dateRange?.end) {
+      deals = deals.filter(deal => deal.expectedCloseDate <= filters.dateRange!.end!)
+    }
+
+    // ディメンションでグループ化
+    const grouped: Record<string, Deal[]> = {}
+
+    deals.forEach(deal => {
+      let key: string
+
+      switch (dimension) {
+        case "status":
+          key = deal.status
+          break
+        case "area":
+          key = deal.area || "未設定"
+          break
+        case "product":
+          key = deal.product || "未設定"
+          break
+        case "team":
+          key = deal.team || "未設定"
+          break
+        case "priority":
+          key = deal.priority
+          break
+        case "month":
+          key = deal.expectedCloseDate.substring(0, 7) // YYYY-MM format
+          break
+        default:
+          key = "その他"
+      }
+
+      if (!grouped[key]) {
+        grouped[key] = []
+      }
+      grouped[key].push(deal)
+    })
+
+    // メトリクス計算
+    const result: Array<{ name: string; value: number }> = []
+
+    Object.entries(grouped).forEach(([name, groupDeals]) => {
+      let value: number
+
+      switch (metric) {
+        case "count":
+          value = groupDeals.length
+          break
+        case "sum":
+          if (metricField === "amount") {
+            value = groupDeals.reduce((sum, deal) => sum + deal.amount, 0)
+          } else if (metricField === "probability") {
+            value = groupDeals.reduce((sum, deal) => sum + deal.probability, 0)
+          } else {
+            value = groupDeals.length
+          }
+          break
+        case "average":
+          if (metricField === "amount") {
+            value = groupDeals.length > 0
+              ? groupDeals.reduce((sum, deal) => sum + deal.amount, 0) / groupDeals.length
+              : 0
+          } else if (metricField === "probability") {
+            value = groupDeals.length > 0
+              ? groupDeals.reduce((sum, deal) => sum + deal.probability, 0) / groupDeals.length
+              : 0
+          } else {
+            value = groupDeals.length
+          }
+          break
+        default:
+          value = groupDeals.length
+      }
+
+      result.push({ name, value })
+    })
+
+    // 月別の場合はソート
+    if (dimension === "month") {
+      result.sort((a, b) => a.name.localeCompare(b.name))
+    }
+
+    return result
   }
 }
 

@@ -1,18 +1,134 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { dealsStore } from "@/lib/store/deals"
-import { BarChart3, PieChart, TrendingUp, Calendar } from "lucide-react"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell } from "recharts"
+import { CustomReport } from "@/types/deal"
+import { BarChart3, PieChart, TrendingUp, Calendar, Plus, Trash2, LineChart, AreaChart } from "lucide-react"
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell,
+  LineChart as RechartsLineChart,
+  Line,
+  AreaChart as RechartsAreaChart,
+  Area
+} from "recharts"
 
 type ReportType = "area" | "product" | "period" | "team" | "status"
 
 export default function ReportsPage() {
+  const router = useRouter()
   const [selectedReport, setSelectedReport] = useState<ReportType>("status")
+  const [selectedCustomReport, setSelectedCustomReport] = useState<string | null>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
   const deals = dealsStore.getDeals()
+  const customReports = dealsStore.getCustomReports()
+
+  const handleDeleteCustomReport = (id: string) => {
+    if (confirm("このカスタムレポートを削除しますか？")) {
+      dealsStore.deleteCustomReport(id)
+      if (selectedCustomReport === id) {
+        setSelectedCustomReport(null)
+      }
+      setRefreshKey(prev => prev + 1)
+    }
+  }
+
+  const getChartIcon = (chartType: string) => {
+    switch (chartType) {
+      case "pie": return PieChart
+      case "line": return LineChart
+      case "area": return AreaChart
+      default: return BarChart3
+    }
+  }
+
+  const renderCustomChart = (report: CustomReport) => {
+    const data = dealsStore.generateReportData(report.config)
+    const { chartType } = report.config
+    const metric = report.config.metric
+    const metricField = report.config.metricField
+
+    const formatValue = (value: number): string => {
+      if (metric === "count") {
+        return `${value}件`
+      } else if (metricField === "probability") {
+        return `${value.toFixed(1)}%`
+      } else {
+        return `¥${(value / 10000).toFixed(0)}万`
+      }
+    }
+
+    if (data.length === 0) {
+      return (
+        <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+          データがありません
+        </div>
+      )
+    }
+
+    return (
+      <div className="h-[300px] w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          {chartType === "pie" ? (
+            <RechartsPieChart>
+              <Pie
+                data={data}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percent }) => `${name} ${percent ? (percent * 100).toFixed(0) : 0}%`}
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                {data.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip formatter={(value: number) => formatValue(value)} />
+            </RechartsPieChart>
+          ) : chartType === "line" ? (
+            <RechartsLineChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} />
+              <Tooltip formatter={(value: number) => formatValue(value)} />
+              <Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={2} />
+            </RechartsLineChart>
+          ) : chartType === "area" ? (
+            <RechartsAreaChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} />
+              <Tooltip formatter={(value: number) => formatValue(value)} />
+              <Area type="monotone" dataKey="value" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.3} />
+            </RechartsAreaChart>
+          ) : (
+            <BarChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} />
+              <Tooltip formatter={(value: number) => formatValue(value)} />
+              <Bar dataKey="value" fill="#3b82f6" />
+            </BarChart>
+          )}
+        </ResponsiveContainer>
+      </div>
+    )
+  }
 
   // エリア別レポート
   const areaData = Object.entries(
@@ -246,23 +362,138 @@ export default function ReportsPage() {
           </CardContent>
         </Card>
 
-        {/* カスタムレポート作成ボタン */}
+        {/* カスタムレポート */}
         <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
           <CardHeader>
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              <CardTitle>カスタムレポート</CardTitle>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-primary" />
+                <CardTitle>カスタムレポート</CardTitle>
+              </div>
+              <Button size="sm" onClick={() => router.push("/reports/builder")}>
+                <Plus className="h-4 w-4 mr-1" />
+                作成
+              </Button>
             </div>
             <CardDescription>
-              より詳細な分析が必要ですか？
+              自分だけのレポートを作成・管理
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button className="w-full" disabled>
-              カスタムレポートを作成（準備中）
-            </Button>
+            {customReports.length > 0 ? (
+              <div className="space-y-2">
+                {customReports.map(report => {
+                  const ChartIcon = getChartIcon(report.config.chartType)
+                  return (
+                    <div
+                      key={report.id}
+                      className={`p-3 rounded-lg border-2 transition-all ${
+                        selectedCustomReport === report.id
+                          ? "border-primary bg-primary/5"
+                          : "border-muted hover:border-primary/50"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <button
+                          onClick={() => setSelectedCustomReport(
+                            selectedCustomReport === report.id ? null : report.id
+                          )}
+                          className="flex items-center gap-2 flex-1 text-left"
+                        >
+                          <ChartIcon className="h-4 w-4 text-primary" />
+                          <div>
+                            <p className="font-medium text-sm">{report.name}</p>
+                            {report.description && (
+                              <p className="text-xs text-muted-foreground">{report.description}</p>
+                            )}
+                          </div>
+                        </button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => handleDeleteCustomReport(report.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                カスタムレポートはまだありません
+              </p>
+            )}
           </CardContent>
         </Card>
+
+        {/* 選択されたカスタムレポートの表示 */}
+        {selectedCustomReport && (
+          <>
+            {(() => {
+              const report = customReports.find(r => r.id === selectedCustomReport)
+              if (!report) return null
+
+              const ChartIcon = getChartIcon(report.config.chartType)
+              const data = dealsStore.generateReportData(report.config)
+              const metric = report.config.metric
+              const metricField = report.config.metricField
+
+              const formatValue = (value: number): string => {
+                if (metric === "count") {
+                  return `${value}件`
+                } else if (metricField === "probability") {
+                  return `${value.toFixed(1)}%`
+                } else {
+                  return `¥${(value / 10000).toFixed(0)}万`
+                }
+              }
+
+              return (
+                <>
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center gap-2">
+                        <ChartIcon className="h-5 w-5" />
+                        <CardTitle>{report.name}</CardTitle>
+                      </div>
+                      {report.description && (
+                        <CardDescription>{report.description}</CardDescription>
+                      )}
+                    </CardHeader>
+                    <CardContent>
+                      {renderCustomChart(report)}
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>データ詳細</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {data.map((item, index) => (
+                          <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                            <div className="flex items-center gap-3">
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                              />
+                              <span className="font-medium">{item.name}</span>
+                            </div>
+                            <span className="font-semibold">{formatValue(item.value)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
+              )
+            })()}
+          </>
+        )}
       </div>
     </div>
   )
