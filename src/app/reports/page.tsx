@@ -174,7 +174,7 @@ export default function ReportsPage() {
     }, {} as Record<string, number>)
   ).map(([month, amount]) => ({ name: month, value: amount }))
 
-  const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#6366f1']
+  const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#6366f1', '#14b8a6', '#f43f5e']
 
   const reportConfigs = {
     area: { title: "エリア別商談金額", data: areaData, icon: BarChart3 },
