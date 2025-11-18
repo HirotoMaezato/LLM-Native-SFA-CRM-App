@@ -1,6 +1,7 @@
 "use client"
 
-import { Deal, FilterCondition, Tag, CustomReport, CustomReportConfig } from "@/types/deal"
+import { Deal, FilterCondition, Tag, CustomReport, CustomReportConfig, AdvancedFilter, MetricDefinition, ReportDataPoint, DimensionField } from "@/types/deal"
+import { evaluateFormula, evaluateCalculatedFields } from "@/lib/formula-parser"
 
 // モックデータ
 const mockTags: Tag[] = [
@@ -872,6 +873,308 @@ class DealsStore {
     }
 
     return result
+  }
+
+  // Enhanced report data generation with multi-axis and multi-metric support
+  generateEnhancedReportData(config: CustomReportConfig): ReportDataPoint[] {
+    let deals = [...this.deals]
+
+    // Apply basic filters
+    deals = this.applyBasicFilters(deals, config.filters)
+
+    // Apply advanced filters
+    if (config.advancedFilters && config.advancedFilters.length > 0) {
+      deals = this.applyAdvancedFilters(deals, config.advancedFilters)
+    }
+
+    // Get dimensions (single or multiple)
+    const dimensions = config.dimensions && config.dimensions.length > 0
+      ? config.dimensions
+      : [config.dimension]
+
+    // Get metrics (single or multiple)
+    const metricsConfig = config.metrics && config.metrics.length > 0
+      ? config.metrics
+      : [{
+          type: config.metric,
+          field: config.metricField,
+          label: this.getMetricLabel(config.metric, config.metricField)
+        }]
+
+    // Group by dimensions
+    const grouped = this.groupByDimensions(deals, dimensions, config.calculatedFields)
+
+    // Calculate metrics for each group
+    const result: ReportDataPoint[] = []
+
+    for (const [key, groupDeals] of Object.entries(grouped)) {
+      const dataPoint: ReportDataPoint = { name: key }
+
+      for (let i = 0; i < metricsConfig.length; i++) {
+        const metricDef = metricsConfig[i]
+        const metricKey = metricDef.label || `metric${i}`
+        dataPoint[metricKey] = this.calculateMetric(groupDeals, metricDef, config.calculatedFields)
+      }
+
+      result.push(dataPoint)
+    }
+
+    // Sort results
+    if (config.sortBy) {
+      result.sort((a, b) => {
+        const aVal = a[config.sortBy!]
+        const bVal = b[config.sortBy!]
+        if (typeof aVal === 'number' && typeof bVal === 'number') {
+          return config.sortOrder === 'desc' ? bVal - aVal : aVal - bVal
+        }
+        return config.sortOrder === 'desc'
+          ? String(bVal).localeCompare(String(aVal))
+          : String(aVal).localeCompare(String(bVal))
+      })
+    } else if (dimensions.includes('month')) {
+      result.sort((a, b) => a.name.localeCompare(b.name))
+    }
+
+    // Apply limit
+    if (config.limit && config.limit > 0) {
+      return result.slice(0, config.limit)
+    }
+
+    return result
+  }
+
+  // Apply basic filters
+  private applyBasicFilters(deals: Deal[], filters: CustomReportConfig['filters']): Deal[] {
+    let filtered = [...deals]
+
+    if (filters.status && filters.status.length > 0) {
+      filtered = filtered.filter(deal => filters.status!.includes(deal.status))
+    }
+    if (filters.priority && filters.priority.length > 0) {
+      filtered = filtered.filter(deal => filters.priority!.includes(deal.priority))
+    }
+    if (filters.minAmount !== undefined) {
+      filtered = filtered.filter(deal => deal.amount >= filters.minAmount!)
+    }
+    if (filters.maxAmount !== undefined) {
+      filtered = filtered.filter(deal => deal.amount <= filters.maxAmount!)
+    }
+    if (filters.area && filters.area.length > 0) {
+      filtered = filtered.filter(deal => deal.area && filters.area!.includes(deal.area))
+    }
+    if (filters.product && filters.product.length > 0) {
+      filtered = filtered.filter(deal => deal.product && filters.product!.includes(deal.product))
+    }
+    if (filters.team && filters.team.length > 0) {
+      filtered = filtered.filter(deal => deal.team && filters.team!.includes(deal.team))
+    }
+    if (filters.tags && filters.tags.length > 0) {
+      filtered = filtered.filter(deal =>
+        deal.tags.some(tag => filters.tags!.includes(tag.id))
+      )
+    }
+    if (filters.dateRange?.start) {
+      filtered = filtered.filter(deal => deal.expectedCloseDate >= filters.dateRange!.start!)
+    }
+    if (filters.dateRange?.end) {
+      filtered = filtered.filter(deal => deal.expectedCloseDate <= filters.dateRange!.end!)
+    }
+
+    return filtered
+  }
+
+  // Apply advanced filters with operators
+  private applyAdvancedFilters(deals: Deal[], filters: AdvancedFilter[]): Deal[] {
+    return deals.filter(deal => {
+      return filters.every(filter => {
+        const value = this.getFieldValue(deal, filter.field as keyof Deal)
+        return this.evaluateFilter(value, filter.operator, filter.value, filter.valueEnd)
+      })
+    })
+  }
+
+  // Evaluate a single filter condition
+  private evaluateFilter(value: unknown, operator: string, filterValue: unknown, filterValueEnd?: unknown): boolean {
+    switch (operator) {
+      case 'equals':
+        return value === filterValue
+      case 'not_equals':
+        return value !== filterValue
+      case 'contains':
+        return String(value).toLowerCase().includes(String(filterValue).toLowerCase())
+      case 'not_contains':
+        return !String(value).toLowerCase().includes(String(filterValue).toLowerCase())
+      case 'greater_than':
+        return Number(value) > Number(filterValue)
+      case 'less_than':
+        return Number(value) < Number(filterValue)
+      case 'greater_equal':
+        return Number(value) >= Number(filterValue)
+      case 'less_equal':
+        return Number(value) <= Number(filterValue)
+      case 'between':
+        return Number(value) >= Number(filterValue) && Number(value) <= Number(filterValueEnd)
+      case 'in':
+        return Array.isArray(filterValue) && filterValue.includes(value)
+      case 'not_in':
+        return Array.isArray(filterValue) && !filterValue.includes(value)
+      case 'is_empty':
+        return value === null || value === undefined || value === ''
+      case 'is_not_empty':
+        return value !== null && value !== undefined && value !== ''
+      default:
+        return true
+    }
+  }
+
+  // Get field value from deal
+  private getFieldValue(deal: Deal, field: keyof Deal): unknown {
+    return deal[field]
+  }
+
+  // Group deals by multiple dimensions
+  private groupByDimensions(
+    deals: Deal[],
+    dimensions: DimensionField[],
+    calculatedFields?: CustomReportConfig['calculatedFields']
+  ): Record<string, Deal[]> {
+    const grouped: Record<string, Deal[]> = {}
+
+    deals.forEach(deal => {
+      // Calculate custom fields if needed
+      let calculatedValues: Record<string, number> = {}
+      if (calculatedFields && calculatedFields.length > 0) {
+        calculatedValues = evaluateCalculatedFields(deal, calculatedFields)
+      }
+
+      const keys = dimensions.map(dim => this.getDimensionValue(deal, dim))
+      const key = keys.join(' / ')
+
+      if (!grouped[key]) {
+        grouped[key] = []
+      }
+      grouped[key].push(deal)
+    })
+
+    return grouped
+  }
+
+  // Get dimension value from deal
+  private getDimensionValue(deal: Deal, dimension: DimensionField): string {
+    switch (dimension) {
+      case 'status':
+        return deal.status
+      case 'area':
+        return deal.area || '未設定'
+      case 'product':
+        return deal.product || '未設定'
+      case 'team':
+        return deal.team || '未設定'
+      case 'priority':
+        return deal.priority
+      case 'month':
+        return deal.expectedCloseDate.substring(0, 7)
+      case 'company':
+        return deal.company
+      case 'contactPerson':
+        return deal.contactPerson
+      case 'expectedCloseDate':
+        return deal.expectedCloseDate
+      case 'createdAt':
+        return deal.createdAt.substring(0, 10)
+      default:
+        return 'その他'
+    }
+  }
+
+  // Calculate metric value for a group of deals
+  private calculateMetric(
+    deals: Deal[],
+    metricDef: MetricDefinition,
+    calculatedFields?: CustomReportConfig['calculatedFields']
+  ): number {
+    if (deals.length === 0) return 0
+
+    const { type, field } = metricDef
+
+    // Check if field is a calculated field
+    const isCalculated = calculatedFields?.find(cf => cf.id === field)
+
+    if (type === 'count') {
+      return deals.length
+    }
+
+    // Get values for aggregation
+    let values: number[]
+    if (isCalculated) {
+      values = deals.map(deal => evaluateFormula(isCalculated.formula, deal))
+    } else if (type === 'custom' && typeof field === 'string') {
+      // Custom formula directly in metric
+      values = deals.map(deal => evaluateFormula(field, deal))
+    } else {
+      values = deals.map(deal => {
+        if (field === 'amount') return deal.amount
+        if (field === 'probability') return deal.probability
+        if (field === 'count') return 1
+        return 0
+      })
+    }
+
+    switch (type) {
+      case 'sum':
+        return values.reduce((a, b) => a + b, 0)
+      case 'average':
+        return values.reduce((a, b) => a + b, 0) / values.length
+      case 'min':
+        return Math.min(...values)
+      case 'max':
+        return Math.max(...values)
+      case 'custom':
+        return values.reduce((a, b) => a + b, 0)
+      default:
+        return deals.length
+    }
+  }
+
+  // Get metric label
+  private getMetricLabel(type: string, field: string): string {
+    if (type === 'count') return '件数'
+    if (field === 'amount') {
+      if (type === 'sum') return '金額合計'
+      if (type === 'average') return '平均金額'
+      if (type === 'min') return '最小金額'
+      if (type === 'max') return '最大金額'
+    }
+    if (field === 'probability') {
+      if (type === 'average') return '平均確度'
+      if (type === 'sum') return '確度合計'
+    }
+    return `${type}_${field}`
+  }
+
+  // Get unique values for a dimension (for filter options)
+  getUniqueValues(dimension: DimensionField): string[] {
+    const values = new Set<string>()
+    this.deals.forEach(deal => {
+      const value = this.getDimensionValue(deal, dimension)
+      values.add(value)
+    })
+    return Array.from(values).sort()
+  }
+
+  // Get all available areas
+  getAreas(): string[] {
+    return this.getUniqueValues('area')
+  }
+
+  // Get all available products
+  getProducts(): string[] {
+    return this.getUniqueValues('product')
+  }
+
+  // Get all available teams
+  getTeams(): string[] {
+    return this.getUniqueValues('team')
   }
 }
 
