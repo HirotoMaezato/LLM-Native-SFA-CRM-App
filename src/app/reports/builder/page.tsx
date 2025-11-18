@@ -530,7 +530,7 @@ export default function ReportBuilderPage() {
         )}
 
         {/* Navigation Buttons */}
-        <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4 z-50">
+        <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4 z-[60]">
           <div className="container mx-auto flex gap-3">
             {currentStepIndex > 0 && (
               <Button variant="outline" onClick={handlePrev} className="flex-1">
