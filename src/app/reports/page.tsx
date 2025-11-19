@@ -69,6 +69,36 @@ export default function ReportsPage() {
     setDrillDownData(null)
   }
 
+  // Handle drill-down for standard reports
+  const handleStandardReportDrillDown = (groupName: string, reportType: ReportType) => {
+    // For period reports, we need to convert Japanese month format to YYYY-MM format
+    let dimensionValue = groupName
+    if (reportType === 'period') {
+      // Convert from "2025年11月" to "2025-11" format
+      const match = groupName.match(/(\d{4})年(\d{1,2})月/)
+      if (match) {
+        const [, year, month] = match
+        dimensionValue = `${year}-${month.padStart(2, '0')}`
+      }
+    }
+
+    // Create a config that matches the standard report type
+    const config: CustomReportConfig = {
+      chartType: reportType === 'status' ? 'pie' : 'bar',
+      dimension: reportType === 'period' ? 'month' : reportType,
+      metric: reportType === 'status' ? 'count' : 'sum',
+      metricField: reportType === 'status' ? 'count' : 'amount',
+      filters: {}
+    }
+
+    const groupDeals = dealsStore.getDealsForGroup(config, dimensionValue)
+    setDrillDownData({
+      groupName,
+      deals: groupDeals,
+      config
+    })
+  }
+
   const handleDeleteCustomReport = (id: string) => {
     if (confirm("このカスタムレポートを削除しますか？")) {
       dealsStore.deleteCustomReport(id)
@@ -217,7 +247,15 @@ export default function ReportsPage() {
               <Tooltip formatter={(value: number) => formatValue(value, metricKeys[0])} />
             </RechartsPieChart>
           ) : chartType === "line" ? (
-            <RechartsLineChart data={data}>
+            <RechartsLineChart
+              data={data}
+              onClick={(e: unknown) => {
+                const event = e as { activePayload?: Array<{ payload: { name: string } }> }
+                if (event && event.activePayload && event.activePayload[0]) {
+                  handleDrillDown(event.activePayload[0].payload.name, report.config)
+                }
+              }}
+            >
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" tick={{ fontSize: 12 }} />
               <YAxis tick={{ fontSize: 12 }} />
@@ -230,11 +268,20 @@ export default function ReportsPage() {
                   dataKey={key}
                   stroke={COLORS[index % COLORS.length]}
                   strokeWidth={2}
+                  cursor="pointer"
                 />
               ))}
             </RechartsLineChart>
           ) : chartType === "area" || chartType === "stackedArea" ? (
-            <RechartsAreaChart data={data}>
+            <RechartsAreaChart
+              data={data}
+              onClick={(e: unknown) => {
+                const event = e as { activePayload?: Array<{ payload: { name: string } }> }
+                if (event && event.activePayload && event.activePayload[0]) {
+                  handleDrillDown(event.activePayload[0].payload.name, report.config)
+                }
+              }}
+            >
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" tick={{ fontSize: 12 }} />
               <YAxis tick={{ fontSize: 12 }} />
@@ -249,11 +296,20 @@ export default function ReportsPage() {
                   fill={COLORS[index % COLORS.length]}
                   fillOpacity={0.3}
                   stackId={chartType === "stackedArea" ? "1" : undefined}
+                  cursor="pointer"
                 />
               ))}
             </RechartsAreaChart>
           ) : chartType === "radar" ? (
-            <RadarChart data={data}>
+            <RadarChart
+              data={data}
+              onClick={(e: unknown) => {
+                const event = e as { activePayload?: Array<{ payload: { name: string } }> }
+                if (event && event.activePayload && event.activePayload[0]) {
+                  handleDrillDown(event.activePayload[0].payload.name, report.config)
+                }
+              }}
+            >
               <PolarGrid />
               <PolarAngleAxis dataKey="name" tick={{ fontSize: 10 }} />
               <PolarRadiusAxis tick={{ fontSize: 10 }} />
@@ -265,6 +321,7 @@ export default function ReportsPage() {
                   stroke={COLORS[index % COLORS.length]}
                   fill={COLORS[index % COLORS.length]}
                   fillOpacity={0.3}
+                  cursor="pointer"
                 />
               ))}
               <Tooltip formatter={(value: number, name: string) => formatValue(value, name)} />
@@ -318,6 +375,13 @@ export default function ReportsPage() {
                 name={metricKeys[0]}
                 data={data.map((item, index) => ({ ...item, index }))}
                 fill={COLORS[0]}
+                cursor="pointer"
+                onClick={(entry: unknown) => {
+                  const point = entry as { name?: string }
+                  if (point && point.name) {
+                    handleDrillDown(point.name, report.config)
+                  }
+                }}
               />
             </ScatterChart>
           ) : chartType === "funnel" ? (
@@ -327,9 +391,15 @@ export default function ReportsPage() {
                 dataKey={metricKeys[0]}
                 data={[...data].sort((a, b) => (b[metricKeys[0]] as number) - (a[metricKeys[0]] as number))}
                 isAnimationActive
+                onClick={(entry: unknown) => {
+                  const funnelEntry = entry as { name?: string }
+                  if (funnelEntry && funnelEntry.name) {
+                    handleDrillDown(funnelEntry.name, report.config)
+                  }
+                }}
               >
                 {data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} cursor="pointer" />
                 ))}
                 <LabelList
                   position="right"
@@ -546,9 +616,14 @@ export default function ReportsPage() {
                         outerRadius={80}
                         fill="#8884d8"
                         dataKey="value"
+                        onClick={(entry) => {
+                          if (entry && entry.name) {
+                            handleStandardReportDrillDown(entry.name, selectedReport)
+                          }
+                        }}
                       >
                         {currentReport.data.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} cursor="pointer" />
                         ))}
                       </Pie>
                       <Tooltip />
@@ -556,14 +631,22 @@ export default function ReportsPage() {
                   </ResponsiveContainer>
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={currentReport.data}>
+                    <BarChart
+                      data={currentReport.data}
+                      onClick={(e: unknown) => {
+                        const event = e as { activePayload?: Array<{ payload: { name: string } }> }
+                        if (event && event.activePayload && event.activePayload[0]) {
+                          handleStandardReportDrillDown(event.activePayload[0].payload.name, selectedReport)
+                        }
+                      }}
+                    >
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                       <YAxis tick={{ fontSize: 12 }} />
                       <Tooltip
                         formatter={(value: number) => `¥${(value / 10000).toFixed(0)}万`}
                       />
-                      <Bar dataKey="value" fill="#3b82f6" />
+                      <Bar dataKey="value" fill="#3b82f6" cursor="pointer" />
                     </BarChart>
                   </ResponsiveContainer>
                 )}
@@ -584,7 +667,11 @@ export default function ReportsPage() {
           <CardContent>
             <div className="space-y-2">
               {currentReport.data.map((item, index) => (
-                <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted cursor-pointer transition-colors"
+                  onClick={() => handleStandardReportDrillDown(item.name, selectedReport)}
+                >
                   <div className="flex items-center gap-3">
                     <div
                       className="w-3 h-3 rounded-full"
@@ -592,11 +679,14 @@ export default function ReportsPage() {
                     />
                     <span className="font-medium">{item.name}</span>
                   </div>
-                  <span className="font-semibold">
-                    {selectedReport === "status"
-                      ? `${item.value}件`
-                      : `¥${(item.value / 10000).toFixed(0)}万`}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">
+                      {selectedReport === "status"
+                        ? `${item.value}件`
+                        : `¥${(item.value / 10000).toFixed(0)}万`}
+                    </span>
+                    <ArrowUpRight className="h-3 w-3 text-muted-foreground" />
+                  </div>
                 </div>
               ))}
             </div>
@@ -724,7 +814,11 @@ export default function ReportsPage() {
                     <CardContent>
                       <div className="space-y-2 max-h-[400px] overflow-y-auto">
                         {data.map((item, index) => (
-                          <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted cursor-pointer transition-colors"
+                            onClick={() => handleDrillDown(item.name, report.config)}
+                          >
                             <div className="flex items-center gap-3">
                               <div
                                 className="w-3 h-3 rounded-full"
@@ -732,17 +826,20 @@ export default function ReportsPage() {
                               />
                               <span className="font-medium">{item.name}</span>
                             </div>
-                            <div className="text-right">
-                              {metrics.map((m, mIndex) => {
-                                const key = m.label || `${m.type}_${m.field}`
-                                const value = item[key] as number
-                                return (
-                                  <div key={mIndex} className="font-semibold">
-                                    {metrics.length > 1 && <span className="text-xs text-muted-foreground mr-1">{m.label}:</span>}
-                                    {formatValue(value, m.label)}
-                                  </div>
-                                )
-                              })}
+                            <div className="flex items-center gap-2">
+                              <div className="text-right">
+                                {metrics.map((m, mIndex) => {
+                                  const key = m.label || `${m.type}_${m.field}`
+                                  const value = item[key] as number
+                                  return (
+                                    <div key={mIndex} className="font-semibold">
+                                      {metrics.length > 1 && <span className="text-xs text-muted-foreground mr-1">{m.label}:</span>}
+                                      {formatValue(value, m.label)}
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                              <ArrowUpRight className="h-3 w-3 text-muted-foreground" />
                             </div>
                           </div>
                         ))}
