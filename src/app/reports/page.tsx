@@ -6,8 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { dealsStore } from "@/lib/store/deals"
-import { CustomReport, ReportDataPoint } from "@/types/deal"
-import { BarChart3, PieChart, TrendingUp, Calendar, Plus, Trash2, LineChart, AreaChart, Target, Layers } from "lucide-react"
+import { CustomReport } from "@/types/deal"
+import { BarChart3, PieChart, TrendingUp, Calendar, Plus, Trash2, LineChart, AreaChart } from "lucide-react"
 import {
   BarChart,
   Bar,
@@ -23,12 +23,7 @@ import {
   LineChart as RechartsLineChart,
   Line,
   AreaChart as RechartsAreaChart,
-  Area,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar
+  Area
 } from "recharts"
 
 type ReportType = "area" | "product" | "period" | "team" | "status"
@@ -55,35 +50,21 @@ export default function ReportsPage() {
     switch (chartType) {
       case "pie": return PieChart
       case "line": return LineChart
-      case "area":
-      case "stackedArea": return AreaChart
-      case "radar": return Target
-      case "scatter": return Layers
+      case "area": return AreaChart
       default: return BarChart3
     }
   }
 
   const renderCustomChart = (report: CustomReport) => {
-    // Use enhanced data generation for multi-metric support
-    const data = dealsStore.generateEnhancedReportData(report.config) as ReportDataPoint[]
+    const data = dealsStore.generateReportData(report.config)
     const { chartType } = report.config
+    const metric = report.config.metric
+    const metricField = report.config.metricField
 
-    // Get metrics configuration
-    const metrics = report.config.metrics && report.config.metrics.length > 0
-      ? report.config.metrics
-      : [{
-          type: report.config.metric,
-          field: report.config.metricField,
-          label: report.config.metric === 'count' ? '件数' :
-                 report.config.metricField === 'probability' ? '平均確度' : '金額合計'
-        }]
-
-    const metricKeys = metrics.map(m => m.label || `${m.type}_${m.field}`)
-
-    const formatValue = (value: number, metricLabel?: string): string => {
-      if (metricLabel?.includes('件数') || metricLabel === '件数') {
+    const formatValue = (value: number): string => {
+      if (metric === "count") {
         return `${value}件`
-      } else if (metricLabel?.includes('確度')) {
+      } else if (metricField === "probability") {
         return `${value.toFixed(1)}%`
       } else {
         return `¥${(value / 10000).toFixed(0)}万`
@@ -111,83 +92,37 @@ export default function ReportsPage() {
                 label={({ name, percent }) => `${name} ${percent ? (percent * 100).toFixed(0) : 0}%`}
                 outerRadius={80}
                 fill="#8884d8"
-                dataKey={metricKeys[0]}
+                dataKey="value"
               >
                 {data.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(value: number) => formatValue(value, metricKeys[0])} />
+              <Tooltip formatter={(value: number) => formatValue(value)} />
             </RechartsPieChart>
           ) : chartType === "line" ? (
             <RechartsLineChart data={data}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" tick={{ fontSize: 12 }} />
               <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip formatter={(value: number, name: string) => formatValue(value, name)} />
-              {metrics.length > 1 && <Legend />}
-              {metricKeys.map((key, index) => (
-                <Line
-                  key={key}
-                  type="monotone"
-                  dataKey={key}
-                  stroke={COLORS[index % COLORS.length]}
-                  strokeWidth={2}
-                />
-              ))}
+              <Tooltip formatter={(value: number) => formatValue(value)} />
+              <Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={2} />
             </RechartsLineChart>
-          ) : chartType === "area" || chartType === "stackedArea" ? (
+          ) : chartType === "area" ? (
             <RechartsAreaChart data={data}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" tick={{ fontSize: 12 }} />
               <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip formatter={(value: number, name: string) => formatValue(value, name)} />
-              {metrics.length > 1 && <Legend />}
-              {metricKeys.map((key, index) => (
-                <Area
-                  key={key}
-                  type="monotone"
-                  dataKey={key}
-                  stroke={COLORS[index % COLORS.length]}
-                  fill={COLORS[index % COLORS.length]}
-                  fillOpacity={0.3}
-                  stackId={chartType === "stackedArea" ? "1" : undefined}
-                />
-              ))}
+              <Tooltip formatter={(value: number) => formatValue(value)} />
+              <Area type="monotone" dataKey="value" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.3} />
             </RechartsAreaChart>
-          ) : chartType === "radar" ? (
-            <RadarChart data={data}>
-              <PolarGrid />
-              <PolarAngleAxis dataKey="name" tick={{ fontSize: 10 }} />
-              <PolarRadiusAxis tick={{ fontSize: 10 }} />
-              {metricKeys.map((key, index) => (
-                <Radar
-                  key={key}
-                  name={key}
-                  dataKey={key}
-                  stroke={COLORS[index % COLORS.length]}
-                  fill={COLORS[index % COLORS.length]}
-                  fillOpacity={0.3}
-                />
-              ))}
-              <Tooltip formatter={(value: number, name: string) => formatValue(value, name)} />
-              {metrics.length > 1 && <Legend />}
-            </RadarChart>
           ) : (
             <BarChart data={data}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" tick={{ fontSize: 12 }} />
               <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip formatter={(value: number, name: string) => formatValue(value, name)} />
-              {metrics.length > 1 && <Legend />}
-              {metricKeys.map((key, index) => (
-                <Bar
-                  key={key}
-                  dataKey={key}
-                  fill={COLORS[index % COLORS.length]}
-                  stackId={chartType === "stackedBar" ? "1" : undefined}
-                />
-              ))}
+              <Tooltip formatter={(value: number) => formatValue(value)} />
+              <Bar dataKey="value" fill="#3b82f6" />
             </BarChart>
           )}
         </ResponsiveContainer>
@@ -502,22 +437,14 @@ export default function ReportsPage() {
               if (!report) return null
 
               const ChartIcon = getChartIcon(report.config.chartType)
-              const data = dealsStore.generateEnhancedReportData(report.config) as ReportDataPoint[]
+              const data = dealsStore.generateReportData(report.config)
+              const metric = report.config.metric
+              const metricField = report.config.metricField
 
-              // Get metrics configuration
-              const metrics = report.config.metrics && report.config.metrics.length > 0
-                ? report.config.metrics
-                : [{
-                    type: report.config.metric,
-                    field: report.config.metricField,
-                    label: report.config.metric === 'count' ? '件数' :
-                           report.config.metricField === 'probability' ? '平均確度' : '金額合計'
-                  }]
-
-              const formatValue = (value: number, metricLabel?: string): string => {
-                if (metricLabel?.includes('件数') || metricLabel === '件数') {
+              const formatValue = (value: number): string => {
+                if (metric === "count") {
                   return `${value}件`
-                } else if (metricLabel?.includes('確度')) {
+                } else if (metricField === "probability") {
                   return `${value.toFixed(1)}%`
                 } else {
                   return `¥${(value / 10000).toFixed(0)}万`
@@ -546,7 +473,7 @@ export default function ReportsPage() {
                       <CardTitle>データ詳細</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                      <div className="space-y-2">
                         {data.map((item, index) => (
                           <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                             <div className="flex items-center gap-3">
@@ -556,18 +483,7 @@ export default function ReportsPage() {
                               />
                               <span className="font-medium">{item.name}</span>
                             </div>
-                            <div className="text-right">
-                              {metrics.map((m, mIndex) => {
-                                const key = m.label || `${m.type}_${m.field}`
-                                const value = item[key] as number
-                                return (
-                                  <div key={mIndex} className="font-semibold">
-                                    {metrics.length > 1 && <span className="text-xs text-muted-foreground mr-1">{m.label}:</span>}
-                                    {formatValue(value, m.label)}
-                                  </div>
-                                )
-                              })}
-                            </div>
+                            <span className="font-semibold">{formatValue(item.value)}</span>
                           </div>
                         ))}
                       </div>

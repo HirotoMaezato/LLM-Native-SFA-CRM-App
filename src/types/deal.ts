@@ -63,50 +63,14 @@ export interface Trigger {
 }
 
 // Custom Report Types for Tableau-like BI functionality
-export type ChartType = "bar" | "pie" | "line" | "area" | "scatter" | "radar" | "funnel" | "stackedBar" | "stackedArea"
+export type ChartType = "bar" | "pie" | "line" | "area"
 
-// Extended dimension field to include all Deal fields
-export type DimensionField = "status" | "area" | "product" | "team" | "priority" | "month" | "company" | "contactPerson" | "expectedCloseDate" | "createdAt"
+export type DimensionField = "status" | "area" | "product" | "team" | "priority" | "month"
 
-export type MetricType = "count" | "sum" | "average" | "min" | "max" | "custom"
+export type MetricType = "count" | "sum" | "average"
 
 export type MetricField = "amount" | "probability" | "count"
 
-// Custom calculated field definition
-export interface CalculatedField {
-  id: string
-  name: string
-  formula: string // e.g., "amount * probability / 100"
-  description?: string
-}
-
-// Single metric definition
-export interface MetricDefinition {
-  type: MetricType
-  field: MetricField | string // string for calculated field reference
-  label?: string
-  color?: string
-}
-
-// Chart definition for multiple charts in a report
-export interface ChartDefinition {
-  id: string
-  chartType: ChartType
-  title?: string
-  metrics: string[] // IDs of metrics to display in this chart
-}
-
-// Enhanced report filter with operators
-export type FilterOperator = "equals" | "not_equals" | "contains" | "not_contains" | "greater_than" | "less_than" | "greater_equal" | "less_equal" | "between" | "in" | "not_in" | "is_empty" | "is_not_empty"
-
-export interface AdvancedFilter {
-  field: keyof Deal | string
-  operator: FilterOperator
-  value: any
-  valueEnd?: any // for "between" operator
-}
-
-// Legacy simple config for backward compatibility
 export interface CustomReportConfig {
   chartType: ChartType
   dimension: DimensionField
@@ -127,21 +91,6 @@ export interface CustomReportConfig {
     }
   }
   colors?: string[]
-  // Enhanced features (optional for backward compatibility)
-  dimensions?: DimensionField[] // Multiple dimensions for multi-axis
-  metrics?: MetricDefinition[] // Multiple metrics
-  calculatedFields?: CalculatedField[] // Custom formulas
-  advancedFilters?: AdvancedFilter[] // Enhanced filtering
-  charts?: ChartDefinition[] // Multiple charts
-  sortBy?: string
-  sortOrder?: "asc" | "desc"
-  limit?: number
-}
-
-// Enhanced report data format for multi-series
-export interface ReportDataPoint {
-  name: string
-  [key: string]: string | number // Dynamic keys for multiple metrics
 }
 
 export interface CustomReport {
