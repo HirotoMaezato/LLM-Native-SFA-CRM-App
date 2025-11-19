@@ -44,6 +44,7 @@ import {
   Search
 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Combobox } from "@/components/ui/combobox"
 import {
   BarChart,
   Bar,
@@ -1260,7 +1261,8 @@ export default function ReportBuilderPage() {
                           </div>
 
                           <div className="grid grid-cols-2 gap-2">
-                            <Select
+                            <Combobox
+                              options={filterFields.map(f => ({ value: f.field, label: f.label }))}
                               value={filter.field as string}
                               onValueChange={(value) => {
                                 const newFieldType = getFieldType(value)
@@ -1271,18 +1273,11 @@ export default function ReportBuilderPage() {
                                   operator: currentOpValid ? filter.operator : validOps[0]?.operator || "equals"
                                 })
                               }}
-                            >
-                              <SelectTrigger className="h-9 text-xs">
-                                <SelectValue placeholder="フィールド" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {filterFields.map(f => (
-                                  <SelectItem key={f.field} value={f.field}>
-                                    {f.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                              placeholder="フィールド"
+                              searchPlaceholder="項目名で検索..."
+                              emptyText="該当する項目がありません"
+                              triggerClassName="h-9 text-xs"
+                            />
 
                             <Select
                               value={filter.operator}
