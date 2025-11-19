@@ -1,8 +1,7 @@
 "use client"
 
-import { Deal, FilterCondition, Tag, CustomReport, CustomReportConfig, AdvancedFilter, MetricDefinition, ReportDataPoint, DimensionField } from "@/types/deal"
+import { Deal, FilterCondition, Tag, CustomReport, CustomReportConfig, AdvancedFilter, MetricDefinition, ReportDataPoint, DimensionField, DealStatus, DealPriority } from "@/types/deal"
 import { evaluateFormula, evaluateCalculatedFields } from "@/lib/formula-parser"
-import { Deal, FilterCondition, Tag, CustomReport, CustomReportConfig, DealStatus, DealPriority } from "@/types/deal"
 
 // ディメンションの全ての可能な値を定義
 const ALL_STATUSES: DealStatus[] = ["新規", "アプローチ中", "提案", "商談中", "クロージング", "成約", "失注"]
@@ -1133,6 +1132,13 @@ class DealsStore {
         return deal.priority
       case 'month':
         return deal.expectedCloseDate.substring(0, 7)
+      case 'quarter': {
+        const date = new Date(deal.expectedCloseDate)
+        const quarter = Math.floor(date.getMonth() / 3) + 1
+        return `${date.getFullYear()} Q${quarter}`
+      }
+      case 'year':
+        return deal.expectedCloseDate.substring(0, 4)
       case 'company':
         return deal.company
       case 'contactPerson':
@@ -1141,6 +1147,10 @@ class DealsStore {
         return deal.expectedCloseDate
       case 'createdAt':
         return deal.createdAt.substring(0, 10)
+      case 'updatedAt':
+        return deal.updatedAt.substring(0, 10)
+      case 'tags':
+        return deal.tags.length > 0 ? deal.tags.map(t => t.name).join(', ') : 'タグなし'
       default:
         return 'その他'
     }

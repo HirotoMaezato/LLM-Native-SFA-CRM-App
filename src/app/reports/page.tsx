@@ -28,7 +28,13 @@ import {
   PolarGrid,
   PolarAngleAxis,
   PolarRadiusAxis,
-  Radar
+  Radar,
+  ScatterChart,
+  Scatter,
+  ZAxis,
+  FunnelChart,
+  Funnel,
+  LabelList
 } from "recharts"
 
 type ReportType = "area" | "product" | "period" | "team" | "status"
@@ -173,6 +179,76 @@ export default function ReportsPage() {
               <Tooltip formatter={(value: number, name: string) => formatValue(value, name)} />
               {metrics.length > 1 && <Legend />}
             </RadarChart>
+          ) : chartType === "scatter" ? (
+            <ScatterChart>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis
+                type="number"
+                dataKey="index"
+                name="Index"
+                tick={{ fontSize: 10 }}
+                domain={[0, 'dataMax + 1']}
+              />
+              <YAxis
+                type="number"
+                dataKey={metricKeys[0]}
+                name={metricKeys[0]}
+                tick={{ fontSize: 10 }}
+              />
+              {metrics.length > 1 && (
+                <ZAxis
+                  type="number"
+                  dataKey={metricKeys[1] || metricKeys[0]}
+                  range={[50, 400]}
+                  name={metricKeys[1] || metricKeys[0]}
+                />
+              )}
+              <Tooltip
+                cursor={{ strokeDasharray: '3 3' }}
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    const pointData = payload[0].payload
+                    return (
+                      <div className="bg-background border rounded-lg p-2 shadow-lg">
+                        <p className="font-medium text-sm">{pointData.name}</p>
+                        {metricKeys.map((key) => (
+                          <p key={key} className="text-xs text-muted-foreground">
+                            {key}: {formatValue(pointData[key], key)}
+                          </p>
+                        ))}
+                      </div>
+                    )
+                  }
+                  return null
+                }}
+              />
+              {metrics.length > 1 && <Legend />}
+              <Scatter
+                name={metricKeys[0]}
+                data={data.map((item, index) => ({ ...item, index }))}
+                fill={COLORS[0]}
+              />
+            </ScatterChart>
+          ) : chartType === "funnel" ? (
+            <FunnelChart>
+              <Tooltip formatter={(value: number) => formatValue(value, metricKeys[0])} />
+              <Funnel
+                dataKey={metricKeys[0]}
+                data={[...data].sort((a, b) => (b[metricKeys[0]] as number) - (a[metricKeys[0]] as number))}
+                isAnimationActive
+              >
+                {data.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+                <LabelList
+                  position="right"
+                  fill="#666"
+                  stroke="none"
+                  dataKey="name"
+                  fontSize={10}
+                />
+              </Funnel>
+            </FunnelChart>
           ) : (
             <BarChart data={data}>
               <CartesianGrid strokeDasharray="3 3" />

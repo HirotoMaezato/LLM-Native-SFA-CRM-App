@@ -66,7 +66,7 @@ export interface Trigger {
 export type ChartType = "bar" | "pie" | "line" | "area" | "scatter" | "radar" | "funnel" | "stackedBar" | "stackedArea"
 
 // Extended dimension field to include all Deal fields
-export type DimensionField = "status" | "area" | "product" | "team" | "priority" | "month" | "company" | "contactPerson" | "expectedCloseDate" | "createdAt"
+export type DimensionField = "status" | "area" | "product" | "team" | "priority" | "month" | "quarter" | "year" | "company" | "contactPerson" | "expectedCloseDate" | "createdAt" | "updatedAt" | "tags"
 
 export type MetricType = "count" | "sum" | "average" | "min" | "max" | "custom"
 
