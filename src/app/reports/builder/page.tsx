@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { dealsStore } from "@/lib/store/deals"
-import { validateFormula, getAvailableFormulaFields, getAvailableFunctions } from "@/lib/formula-parser"
+import { validateFormula, getAvailableFormulaFields, getAvailableFunctions, getAvailableTables, generateFormulaFromDescription, getFormulaSuggestions } from "@/lib/formula-parser"
 import {
   ChartType,
   DimensionField,
@@ -41,7 +41,12 @@ import {
   Filter,
   X,
   Table2,
-  Search
+  Search,
+  Sparkles,
+  Database,
+  ChevronDown,
+  ChevronUp,
+  Lightbulb
 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
@@ -95,6 +100,12 @@ export default function ReportBuilderPage() {
   const [newCalcName, setNewCalcName] = useState("")
   const [newCalcFormula, setNewCalcFormula] = useState("")
   const [showFormulaHelp, setShowFormulaHelp] = useState(false)
+
+  // AI Formula generation
+  const [aiPrompt, setAiPrompt] = useState("")
+  const [aiResult, setAiResult] = useState<{ formula: string; explanation: string } | null>(null)
+  const [expandedTables, setExpandedTables] = useState<string[]>(["deal"])
+  const [showSuggestions, setShowSuggestions] = useState(false)
 
   // Filter state
   const [statusFilters, setStatusFilters] = useState<DealStatus[]>([])
@@ -846,12 +857,119 @@ export default function ReportBuilderPage() {
 
         {currentStep === "calculated" && (
           <div className="space-y-4">
+            {/* AI Formula Generation */}
+            <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  <CardTitle>AI数式生成</CardTitle>
+                </div>
+                <CardDescription>
+                  やりたいことを日本語で入力すると、AIが数式を生成します
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Input
+                    placeholder="例: 期待値を計算したい、手数料10%を算出したい、高額案件を判定したい"
+                    value={aiPrompt}
+                    onChange={(e) => setAiPrompt(e.target.value)}
+                  />
+                </div>
+                <Button
+                  onClick={() => {
+                    if (aiPrompt.trim()) {
+                      const result = generateFormulaFromDescription(aiPrompt)
+                      setAiResult({ formula: result.formula, explanation: result.explanation })
+                      setNewCalcFormula(result.formula)
+                      if (!newCalcName.trim()) {
+                        // Auto-generate a name based on the prompt
+                        const name = aiPrompt.length > 20 ? aiPrompt.substring(0, 20) + '...' : aiPrompt
+                        setNewCalcName(name)
+                      }
+                    }
+                  }}
+                  disabled={!aiPrompt.trim()}
+                  className="w-full"
+                >
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  数式を生成
+                </Button>
+
+                {aiResult && (
+                  <div className="p-3 rounded-lg bg-background border space-y-2">
+                    <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                      <Lightbulb className="h-4 w-4" />
+                      生成された数式
+                    </div>
+                    <code className="block p-2 bg-muted rounded text-sm font-mono">
+                      {aiResult.formula}
+                    </code>
+                    <p className="text-xs text-muted-foreground">
+                      {aiResult.explanation}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Formula Suggestions */}
+            <Card>
+              <CardHeader>
+                <button
+                  onClick={() => setShowSuggestions(!showSuggestions)}
+                  className="flex items-center justify-between w-full text-left"
+                >
+                  <div className="flex items-center gap-2">
+                    <Lightbulb className="h-5 w-5 text-amber-500" />
+                    <CardTitle className="text-base">数式テンプレート</CardTitle>
+                  </div>
+                  {showSuggestions ? (
+                    <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </button>
+              </CardHeader>
+              {showSuggestions && (
+                <CardContent className="space-y-3">
+                  {Object.entries(
+                    getFormulaSuggestions().reduce((acc, s) => {
+                      if (!acc[s.category]) acc[s.category] = []
+                      acc[s.category].push(s)
+                      return acc
+                    }, {} as Record<string, typeof getFormulaSuggestions extends () => infer R ? R : never>)
+                  ).map(([category, suggestions]) => (
+                    <div key={category}>
+                      <p className="text-xs font-medium text-muted-foreground mb-2">{category}</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {suggestions.map((s) => (
+                          <button
+                            key={s.name}
+                            onClick={() => {
+                              setNewCalcName(s.name)
+                              setNewCalcFormula(s.formula)
+                            }}
+                            className="p-2 text-left rounded-lg border hover:border-primary/50 hover:bg-primary/5 transition-colors"
+                          >
+                            <p className="text-xs font-medium">{s.name}</p>
+                            <p className="text-[10px] text-muted-foreground truncate">{s.description}</p>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              )}
+            </Card>
+
+            {/* Manual Formula Creation */}
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>計算フィールド</CardTitle>
-                    <CardDescription>カスタム数式で独自の指標を作成</CardDescription>
+                    <CardTitle>計算フィールド作成</CardTitle>
+                    <CardDescription>数式を直接入力して独自の指標を作成</CardDescription>
                   </div>
                   <Button
                     variant="ghost"
@@ -865,36 +983,99 @@ export default function ReportBuilderPage() {
               <CardContent className="space-y-4">
                 {showFormulaHelp && (
                   <div className="p-3 rounded-lg bg-muted text-sm space-y-3 max-h-[400px] overflow-y-auto">
-                    <div>
-                      <p className="font-medium">数値フィールド:</p>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {getAvailableFormulaFields().filter(f => f.type === 'number').map(f => (
+                    {/* Table-based field selection */}
+                    <div className="space-y-3">
+                      <p className="font-medium flex items-center gap-2">
+                        <Database className="h-4 w-4" />
+                        テーブル別フィールド
+                      </p>
+                      {getAvailableTables().map(table => (
+                        <div key={table.id} className="border rounded-lg overflow-hidden">
                           <button
-                            key={f.name}
-                            onClick={() => setNewCalcFormula(prev => prev + f.name)}
-                            className="px-2 py-1 bg-background rounded text-xs hover:bg-primary/10"
-                            title={f.description}
+                            onClick={() => {
+                              setExpandedTables(prev =>
+                                prev.includes(table.id)
+                                  ? prev.filter(t => t !== table.id)
+                                  : [...prev, table.id]
+                              )
+                            }}
+                            className="w-full p-2 flex items-center justify-between bg-background hover:bg-muted/50"
                           >
-                            {f.label}
+                            <div>
+                              <span className="font-medium text-xs">{table.name}</span>
+                              <span className="text-[10px] text-muted-foreground ml-2">
+                                {table.description}
+                              </span>
+                            </div>
+                            {expandedTables.includes(table.id) ? (
+                              <ChevronUp className="h-3 w-3" />
+                            ) : (
+                              <ChevronDown className="h-3 w-3" />
+                            )}
                           </button>
-                        ))}
-                      </div>
+                          {expandedTables.includes(table.id) && (
+                            <div className="p-2 bg-muted/30 space-y-2">
+                              {/* Numeric fields */}
+                              {table.fields.filter(f => f.type === 'number').length > 0 && (
+                                <div>
+                                  <p className="text-[10px] text-muted-foreground mb-1">数値</p>
+                                  <div className="flex flex-wrap gap-1">
+                                    {table.fields.filter(f => f.type === 'number').map(f => (
+                                      <button
+                                        key={f.name}
+                                        onClick={() => setNewCalcFormula(prev => prev + f.name)}
+                                        className="px-2 py-1 bg-background rounded text-xs hover:bg-primary/10"
+                                        title={f.description}
+                                      >
+                                        {f.label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {/* Text fields */}
+                              {table.fields.filter(f => f.type === 'text').length > 0 && (
+                                <div>
+                                  <p className="text-[10px] text-muted-foreground mb-1">テキスト</p>
+                                  <div className="flex flex-wrap gap-1">
+                                    {table.fields.filter(f => f.type === 'text').map(f => (
+                                      <button
+                                        key={f.name}
+                                        onClick={() => setNewCalcFormula(prev => prev + f.name)}
+                                        className="px-2 py-1 bg-background rounded text-xs hover:bg-primary/10"
+                                        title={f.description}
+                                      >
+                                        {f.label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {/* Date fields */}
+                              {table.fields.filter(f => f.type === 'date').length > 0 && (
+                                <div>
+                                  <p className="text-[10px] text-muted-foreground mb-1">日付</p>
+                                  <div className="flex flex-wrap gap-1">
+                                    {table.fields.filter(f => f.type === 'date').map(f => (
+                                      <button
+                                        key={f.name}
+                                        onClick={() => setNewCalcFormula(prev => prev + f.name)}
+                                        className="px-2 py-1 bg-background rounded text-xs hover:bg-primary/10"
+                                        title={f.description}
+                                      >
+                                        {f.label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                    <div>
-                      <p className="font-medium">テキストフィールド:</p>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {getAvailableFormulaFields().filter(f => f.type === 'text').map(f => (
-                          <button
-                            key={f.name}
-                            onClick={() => setNewCalcFormula(prev => prev + f.name)}
-                            className="px-2 py-1 bg-background rounded text-xs hover:bg-primary/10"
-                            title={f.description}
-                          >
-                            {f.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+
+                    {/* Functions */}
                     <div>
                       <p className="font-medium">数学関数:</p>
                       <div className="flex flex-wrap gap-1 mt-1">
