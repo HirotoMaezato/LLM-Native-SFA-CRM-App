@@ -17,7 +17,10 @@ import {
   DealStatus,
   DealPriority,
   CalculatedField,
-  MetricDefinition
+  MetricDefinition,
+  AdvancedFilter,
+  FilterOperator,
+  Deal
 } from "@/types/deal"
 import {
   ArrowLeft,
@@ -34,8 +37,11 @@ import {
   Calculator,
   Layers,
   Target,
-  HelpCircle
+  HelpCircle,
+  Filter,
+  X
 } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   BarChart,
   Bar,
@@ -56,7 +62,13 @@ import {
   PolarAngleAxis,
   PolarRadiusAxis,
   Radar,
-  Legend
+  Legend,
+  ScatterChart,
+  Scatter,
+  ZAxis,
+  FunnelChart,
+  Funnel,
+  LabelList
 } from "recharts"
 
 const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#6366f1', '#ef4444', '#06b6d4']
@@ -92,6 +104,48 @@ export default function ReportBuilderPage() {
   const [maxAmount, setMaxAmount] = useState<string>("")
   const [dateStart, setDateStart] = useState<string>("")
   const [dateEnd, setDateEnd] = useState<string>("")
+
+  // Advanced filters state
+  const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilter[]>([])
+
+  // Sorting and limit state
+  const [sortBy, setSortBy] = useState<string>("")
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc")
+  const [limit, setLimit] = useState<string>("")
+
+  // Filter field options for advanced filters
+  const filterFields: { field: keyof Deal; label: string; type: "string" | "number" | "date" }[] = [
+    { field: "title", label: "案件名", type: "string" },
+    { field: "company", label: "会社名", type: "string" },
+    { field: "contactPerson", label: "担当者", type: "string" },
+    { field: "contactEmail", label: "メール", type: "string" },
+    { field: "amount", label: "金額", type: "number" },
+    { field: "probability", label: "確度", type: "number" },
+    { field: "status", label: "ステータス", type: "string" },
+    { field: "priority", label: "優先度", type: "string" },
+    { field: "area", label: "エリア", type: "string" },
+    { field: "product", label: "商材", type: "string" },
+    { field: "team", label: "チーム", type: "string" },
+    { field: "expectedCloseDate", label: "予定完了日", type: "date" },
+    { field: "createdAt", label: "作成日", type: "date" },
+    { field: "description", label: "説明", type: "string" },
+    { field: "notes", label: "メモ", type: "string" },
+  ]
+
+  // Operator options for advanced filters
+  const operatorOptions: { operator: FilterOperator; label: string; types: ("string" | "number" | "date")[] }[] = [
+    { operator: "equals", label: "等しい", types: ["string", "number", "date"] },
+    { operator: "not_equals", label: "等しくない", types: ["string", "number", "date"] },
+    { operator: "contains", label: "含む", types: ["string"] },
+    { operator: "not_contains", label: "含まない", types: ["string"] },
+    { operator: "greater_than", label: "より大きい", types: ["number", "date"] },
+    { operator: "less_than", label: "より小さい", types: ["number", "date"] },
+    { operator: "greater_equal", label: "以上", types: ["number", "date"] },
+    { operator: "less_equal", label: "以下", types: ["number", "date"] },
+    { operator: "between", label: "範囲内", types: ["number", "date"] },
+    { operator: "is_empty", label: "空である", types: ["string", "number", "date"] },
+    { operator: "is_not_empty", label: "空でない", types: ["string", "number", "date"] },
+  ]
 
   // Get available options from store
   const allAreas = dealsStore.getAreas()
@@ -129,9 +183,13 @@ export default function ReportBuilderPage() {
     { field: "team", label: "チーム", description: "営業チーム別" },
     { field: "priority", label: "優先度", description: "案件の優先度別" },
     { field: "month", label: "月別", description: "予定完了月別の推移" },
+    { field: "quarter", label: "四半期別", description: "四半期ごとの分析" },
+    { field: "year", label: "年別", description: "年度ごとの推移" },
     { field: "company", label: "会社", description: "取引先会社別" },
     { field: "contactPerson", label: "担当者", description: "顧客担当者別" },
     { field: "createdAt", label: "作成日", description: "案件作成日別" },
+    { field: "updatedAt", label: "更新日", description: "案件更新日別" },
+    { field: "tags", label: "タグ", description: "タグ別の分類" },
   ]
 
   const availableMetrics: { type: MetricType; field: MetricField; label: string; description: string }[] = [
@@ -248,6 +306,36 @@ export default function ReportBuilderPage() {
     }
   }
 
+  // Advanced filter functions
+  const addAdvancedFilter = () => {
+    const newFilter: AdvancedFilter = {
+      field: "amount",
+      operator: "greater_than",
+      value: ""
+    }
+    setAdvancedFilters(prev => [...prev, newFilter])
+  }
+
+  const updateAdvancedFilter = (index: number, updates: Partial<AdvancedFilter>) => {
+    setAdvancedFilters(prev => prev.map((filter, i) =>
+      i === index ? { ...filter, ...updates } : filter
+    ))
+  }
+
+  const removeAdvancedFilter = (index: number) => {
+    setAdvancedFilters(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const getFieldType = (field: string): "string" | "number" | "date" => {
+    const fieldConfig = filterFields.find(f => f.field === field)
+    return fieldConfig?.type || "string"
+  }
+
+  const getAvailableOperators = (field: string) => {
+    const fieldType = getFieldType(field)
+    return operatorOptions.filter(op => op.types.includes(fieldType))
+  }
+
   const getConfig = (): CustomReportConfig => ({
     chartType,
     dimension: dimensions[0],
@@ -268,7 +356,11 @@ export default function ReportBuilderPage() {
     },
     dimensions: dimensions.length > 1 ? dimensions : undefined,
     metrics: metrics.length > 1 ? metrics : undefined,
-    calculatedFields: calculatedFields.length > 0 ? calculatedFields : undefined
+    calculatedFields: calculatedFields.length > 0 ? calculatedFields : undefined,
+    advancedFilters: advancedFilters.length > 0 ? advancedFilters : undefined,
+    sortBy: sortBy || undefined,
+    sortOrder: sortBy ? sortOrder : undefined,
+    limit: limit ? parseInt(limit) : undefined
   })
 
   const previewData = dealsStore.generateEnhancedReportData(getConfig())
@@ -398,6 +490,76 @@ export default function ReportBuilderPage() {
               <Tooltip formatter={(value: number, name: string) => formatValue(value, name)} />
               {metrics.length > 1 && <Legend />}
             </RadarChart>
+          ) : chartType === "scatter" ? (
+            <ScatterChart>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis
+                type="number"
+                dataKey="index"
+                name="Index"
+                tick={{ fontSize: 10 }}
+                domain={[0, 'dataMax + 1']}
+              />
+              <YAxis
+                type="number"
+                dataKey={metricKeys[0]}
+                name={metricKeys[0]}
+                tick={{ fontSize: 10 }}
+              />
+              {metrics.length > 1 && (
+                <ZAxis
+                  type="number"
+                  dataKey={metricKeys[1]}
+                  range={[50, 400]}
+                  name={metricKeys[1]}
+                />
+              )}
+              <Tooltip
+                cursor={{ strokeDasharray: '3 3' }}
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    const data = payload[0].payload
+                    return (
+                      <div className="bg-background border rounded-lg p-2 shadow-lg">
+                        <p className="font-medium text-sm">{data.name}</p>
+                        {metricKeys.map((key, idx) => (
+                          <p key={key} className="text-xs text-muted-foreground">
+                            {key}: {formatValue(data[key], key)}
+                          </p>
+                        ))}
+                      </div>
+                    )
+                  }
+                  return null
+                }}
+              />
+              {metrics.length > 1 && <Legend />}
+              <Scatter
+                name={metricKeys[0]}
+                data={previewData.map((item, index) => ({ ...item, index }))}
+                fill={COLORS[0]}
+              />
+            </ScatterChart>
+          ) : chartType === "funnel" ? (
+            <FunnelChart>
+              <Tooltip formatter={(value: number) => formatValue(value, metricKeys[0])} />
+              <Funnel
+                dataKey={metricKeys[0]}
+                data={previewData.sort((a, b) => (b[metricKeys[0]] as number) - (a[metricKeys[0]] as number))}
+                isAnimationActive
+              >
+                {previewData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+                <LabelList
+                  position="right"
+                  fill="#666"
+                  stroke="none"
+                  dataKey="name"
+                  fontSize={10}
+                />
+              </Funnel>
+            </FunnelChart>
           ) : (
             <BarChart data={previewData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -877,6 +1039,128 @@ export default function ReportBuilderPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Advanced Filters */}
+            <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-5 w-5 text-primary" />
+                    <CardTitle>高度な絞り込み</CardTitle>
+                  </div>
+                  <Button size="sm" onClick={addAdvancedFilter}>
+                    <Plus className="h-4 w-4 mr-1" />
+                    追加
+                  </Button>
+                </div>
+                <CardDescription>
+                  任意のフィールドに対して詳細な条件を設定
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {advancedFilters.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    高度な絞り込み条件はありません
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {advancedFilters.map((filter, index) => {
+                      const fieldType = getFieldType(filter.field as string)
+                      const availableOps = getAvailableOperators(filter.field as string)
+                      const needsValue = !["is_empty", "is_not_empty"].includes(filter.operator)
+                      const needsSecondValue = filter.operator === "between"
+
+                      return (
+                        <div key={index} className="p-3 rounded-lg border bg-background space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-medium text-muted-foreground">
+                              条件 {index + 1}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-destructive"
+                              onClick={() => removeAdvancedFilter(index)}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <Select
+                              value={filter.field as string}
+                              onValueChange={(value) => {
+                                const newFieldType = getFieldType(value)
+                                const validOps = operatorOptions.filter(op => op.types.includes(newFieldType))
+                                const currentOpValid = validOps.some(op => op.operator === filter.operator)
+                                updateAdvancedFilter(index, {
+                                  field: value,
+                                  operator: currentOpValid ? filter.operator : validOps[0]?.operator || "equals"
+                                })
+                              }}
+                            >
+                              <SelectTrigger className="h-9 text-xs">
+                                <SelectValue placeholder="フィールド" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {filterFields.map(f => (
+                                  <SelectItem key={f.field} value={f.field}>
+                                    {f.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+
+                            <Select
+                              value={filter.operator}
+                              onValueChange={(value) =>
+                                updateAdvancedFilter(index, { operator: value as FilterOperator })
+                              }
+                            >
+                              <SelectTrigger className="h-9 text-xs">
+                                <SelectValue placeholder="条件" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {availableOps.map(op => (
+                                  <SelectItem key={op.operator} value={op.operator}>
+                                    {op.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {needsValue && (
+                            <div className={needsSecondValue ? "grid grid-cols-2 gap-2" : ""}>
+                              <Input
+                                type={fieldType === "number" ? "number" : fieldType === "date" ? "date" : "text"}
+                                placeholder={needsSecondValue ? "開始値" : "値"}
+                                value={filter.value || ""}
+                                onChange={(e) => updateAdvancedFilter(index, {
+                                  value: fieldType === "number" ? Number(e.target.value) : e.target.value
+                                })}
+                                className="h-9 text-sm"
+                              />
+                              {needsSecondValue && (
+                                <Input
+                                  type={fieldType === "number" ? "number" : fieldType === "date" ? "date" : "text"}
+                                  placeholder="終了値"
+                                  value={filter.valueEnd || ""}
+                                  onChange={(e) => updateAdvancedFilter(index, {
+                                    valueEnd: fieldType === "number" ? Number(e.target.value) : e.target.value
+                                  })}
+                                  className="h-9 text-sm"
+                                />
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         )}
 
@@ -906,12 +1190,95 @@ export default function ReportBuilderPage() {
               </CardContent>
             </Card>
 
+            {/* Sorting and Limit Options */}
             <Card>
               <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Eye className="h-5 w-5" />
-                  <CardTitle>プレビュー</CardTitle>
+                <CardTitle>表示オプション</CardTitle>
+                <CardDescription>ソートと表示件数の設定</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-sm font-medium">ソート基準</label>
+                    <Select
+                      value={sortBy}
+                      onValueChange={setSortBy}
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="なし" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">なし</SelectItem>
+                        {metrics.map(m => (
+                          <SelectItem key={m.label || m.field} value={m.label || `${m.type}_${m.field}`}>
+                            {m.label || `${m.type}_${m.field}`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">順序</label>
+                    <Select
+                      value={sortOrder}
+                      onValueChange={(value) => setSortOrder(value as "asc" | "desc")}
+                      disabled={!sortBy}
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="desc">降順（大→小）</SelectItem>
+                        <SelectItem value="asc">昇順（小→大）</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
+                <div>
+                  <label className="text-sm font-medium">表示件数上限</label>
+                  <Input
+                    type="number"
+                    placeholder="全件表示"
+                    value={limit}
+                    onChange={(e) => setLimit(e.target.value)}
+                    min="1"
+                    className="h-9"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Eye className="h-5 w-5" />
+                    <CardTitle>プレビュー</CardTitle>
+                  </div>
+                  {/* Quick chart type switcher */}
+                  <div className="flex gap-1">
+                    {[
+                      { type: "bar" as ChartType, icon: BarChart3, label: "棒" },
+                      { type: "line" as ChartType, icon: LineChart, label: "線" },
+                      { type: "pie" as ChartType, icon: PieChart, label: "円" },
+                      { type: "area" as ChartType, icon: AreaChart, label: "面" },
+                    ].map(({ type, icon: Icon, label }) => (
+                      <Button
+                        key={type}
+                        variant={chartType === type ? "default" : "ghost"}
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => setChartType(type)}
+                        title={label}
+                      >
+                        <Icon className="h-3 w-3" />
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                <CardDescription>
+                  グラフタイプを切り替えて最適な表示を確認
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 {renderChart()}
@@ -972,6 +1339,12 @@ export default function ReportBuilderPage() {
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">チーム</span>
                       <span className="font-medium">{teamFilters.join(", ")}</span>
+                    </div>
+                  )}
+                  {advancedFilters.length > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">高度な絞り込み</span>
+                      <span className="font-medium">{advancedFilters.length}件</span>
                     </div>
                   )}
                 </div>
