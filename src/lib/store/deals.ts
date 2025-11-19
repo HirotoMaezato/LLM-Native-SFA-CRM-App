@@ -2,6 +2,39 @@
 
 import { Deal, FilterCondition, Tag, CustomReport, CustomReportConfig, AdvancedFilter, MetricDefinition, ReportDataPoint, DimensionField } from "@/types/deal"
 import { evaluateFormula, evaluateCalculatedFields } from "@/lib/formula-parser"
+import { Deal, FilterCondition, Tag, CustomReport, CustomReportConfig, DealStatus, DealPriority } from "@/types/deal"
+
+// ディメンションの全ての可能な値を定義
+const ALL_STATUSES: DealStatus[] = ["新規", "アプローチ中", "提案", "商談中", "クロージング", "成約", "失注"]
+const ALL_PRIORITIES: DealPriority[] = ["高", "中", "低"]
+const ALL_AREAS: string[] = ["関東", "関西", "東北", "九州", "北海道", "中部", "中国", "四国"]
+const ALL_PRODUCTS: string[] = ["CRMシステム", "Webサイト制作", "クラウドサービス", "セキュリティソリューション", "データ分析基盤", "IoTシステム", "モバイルアプリ", "基幹システム"]
+const ALL_TEAMS: string[] = ["第一営業部", "第二営業部", "西日本営業部", "九州営業部"]
+
+// 月の範囲を生成するヘルパー関数
+function generateMonthRange(startDate?: string, endDate?: string, existingMonths?: string[]): string[] {
+  if (!startDate || !endDate) {
+    // 日付範囲が指定されていない場合は既存の月のみ返す
+    return existingMonths || []
+  }
+
+  const start = new Date(startDate)
+  const end = new Date(endDate)
+  const months: string[] = []
+
+  // 開始月から終了月まで全ての月を生成
+  const current = new Date(start.getFullYear(), start.getMonth(), 1)
+  const endMonth = new Date(end.getFullYear(), end.getMonth(), 1)
+
+  while (current <= endMonth) {
+    const year = current.getFullYear()
+    const month = String(current.getMonth() + 1).padStart(2, '0')
+    months.push(`${year}-${month}`)
+    current.setMonth(current.getMonth() + 1)
+  }
+
+  return months
+}
 
 // モックデータ
 const mockTags: Tag[] = [
@@ -795,6 +828,32 @@ class DealsStore {
 
     // ディメンションでグループ化
     const grouped: Record<string, Deal[]> = {}
+
+    // 全ての可能な値で初期化（0表示のため）
+    switch (dimension) {
+      case "status":
+        ALL_STATUSES.forEach(status => { grouped[status] = [] })
+        break
+      case "area":
+        ALL_AREAS.forEach(area => { grouped[area] = [] })
+        break
+      case "product":
+        ALL_PRODUCTS.forEach(product => { grouped[product] = [] })
+        break
+      case "team":
+        ALL_TEAMS.forEach(team => { grouped[team] = [] })
+        break
+      case "priority":
+        ALL_PRIORITIES.forEach(priority => { grouped[priority] = [] })
+        break
+      case "month":
+        // 日付範囲がある場合はその範囲の全ての月を初期化
+        if (filters.dateRange?.start && filters.dateRange?.end) {
+          const allMonths = generateMonthRange(filters.dateRange.start, filters.dateRange.end)
+          allMonths.forEach(month => { grouped[month] = [] })
+        }
+        break
+    }
 
     deals.forEach(deal => {
       let key: string
