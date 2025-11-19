@@ -39,7 +39,9 @@ import {
   Target,
   HelpCircle,
   Filter,
-  X
+  X,
+  Table2,
+  Search
 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
@@ -113,6 +115,11 @@ export default function ReportBuilderPage() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc")
   const [limit, setLimit] = useState<string>("")
 
+  // Search state for filters
+  const [areaSearch, setAreaSearch] = useState("")
+  const [productSearch, setProductSearch] = useState("")
+  const [teamSearch, setTeamSearch] = useState("")
+
   // Filter field options for advanced filters
   const filterFields: { field: keyof Deal; label: string; type: "string" | "number" | "date" }[] = [
     { field: "title", label: "案件名", type: "string" },
@@ -165,6 +172,7 @@ export default function ReportBuilderPage() {
   const currentStepIndex = steps.findIndex(s => s.key === currentStep)
 
   const chartTypes: { type: ChartType; label: string; icon: typeof BarChart3; description: string }[] = [
+    { type: "table", label: "テーブル", icon: Table2, description: "シンプルな表形式表示" },
     { type: "bar", label: "棒グラフ", icon: BarChart3, description: "カテゴリ別の比較に最適" },
     { type: "stackedBar", label: "積み上げ棒", icon: BarChart3, description: "複数指標の構成比較" },
     { type: "pie", label: "円グラフ", icon: PieChart, description: "割合や構成比の表示に" },
@@ -414,6 +422,60 @@ export default function ReportBuilderPage() {
     }
 
     const metricKeys = metrics.map(m => m.label || `${m.type}_${m.field}`)
+
+    // Table chart type rendering
+    if (chartType === "table") {
+      return (
+        <div className="h-[300px] w-full overflow-auto">
+          <table className="w-full text-sm">
+            <thead className="sticky top-0 bg-background border-b">
+              <tr>
+                <th className="text-left p-2 font-medium">{dimensions.map(d => allDimensions.find(ad => ad.field === d)?.label).join(' / ')}</th>
+                {metricKeys.map((key, index) => (
+                  <th key={key} className="text-right p-2 font-medium">{key}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {previewData.map((item, index) => (
+                <tr key={index} className="border-b hover:bg-muted/50">
+                  <td className="p-2">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-2 h-2 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                      />
+                      {item.name}
+                    </div>
+                  </td>
+                  {metricKeys.map((key) => {
+                    const value = item[key] as number
+                    return (
+                      <td key={key} className="p-2 text-right font-mono">
+                        {formatValue(value, key)}
+                      </td>
+                    )
+                  })}
+                </tr>
+              ))}
+            </tbody>
+            <tfoot className="border-t-2 bg-muted/30">
+              <tr>
+                <td className="p-2 font-medium">合計</td>
+                {metricKeys.map((key) => {
+                  const total = previewData.reduce((sum, item) => sum + (item[key] as number), 0)
+                  return (
+                    <td key={key} className="p-2 text-right font-mono font-medium">
+                      {formatValue(total, key)}
+                    </td>
+                  )
+                })}
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )
+    }
 
     return (
       <div className="h-[300px] w-full">
@@ -802,28 +864,91 @@ export default function ReportBuilderPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {showFormulaHelp && (
-                  <div className="p-3 rounded-lg bg-muted text-sm space-y-2">
-                    <p className="font-medium">利用可能なフィールド:</p>
-                    <ul className="list-disc list-inside space-y-1">
-                      {getAvailableFormulaFields().map(f => (
-                        <li key={f.name}>
-                          <code className="bg-background px-1 rounded">{f.name}</code> - {f.description}
-                        </li>
-                      ))}
-                    </ul>
-                    <p className="font-medium mt-3">利用可能な関数:</p>
-                    <ul className="list-disc list-inside space-y-1">
-                      {getAvailableFunctions().map(f => (
-                        <li key={f.name}>
-                          <code className="bg-background px-1 rounded">{f.syntax}</code> - {f.description}
-                        </li>
-                      ))}
-                    </ul>
-                    <p className="font-medium mt-3">例:</p>
-                    <ul className="list-disc list-inside space-y-1">
-                      <li><code className="bg-background px-1 rounded">amount * probability / 100</code> - 期待値</li>
-                      <li><code className="bg-background px-1 rounded">amount * 0.1</code> - 手数料10%</li>
-                    </ul>
+                  <div className="p-3 rounded-lg bg-muted text-sm space-y-3 max-h-[400px] overflow-y-auto">
+                    <div>
+                      <p className="font-medium">数値フィールド:</p>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {getAvailableFormulaFields().filter(f => f.type === 'number').map(f => (
+                          <button
+                            key={f.name}
+                            onClick={() => setNewCalcFormula(prev => prev + f.name)}
+                            className="px-2 py-1 bg-background rounded text-xs hover:bg-primary/10"
+                            title={f.description}
+                          >
+                            {f.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="font-medium">テキストフィールド:</p>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {getAvailableFormulaFields().filter(f => f.type === 'text').map(f => (
+                          <button
+                            key={f.name}
+                            onClick={() => setNewCalcFormula(prev => prev + f.name)}
+                            className="px-2 py-1 bg-background rounded text-xs hover:bg-primary/10"
+                            title={f.description}
+                          >
+                            {f.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="font-medium">数学関数:</p>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {getAvailableFunctions().filter(f => f.category === 'math').map(f => (
+                          <button
+                            key={f.name}
+                            onClick={() => setNewCalcFormula(prev => prev + f.name + '(')}
+                            className="px-2 py-1 bg-background rounded text-xs hover:bg-primary/10"
+                            title={`${f.syntax} - ${f.description}`}
+                          >
+                            {f.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="font-medium">ロジック関数:</p>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {getAvailableFunctions().filter(f => f.category === 'logic').map(f => (
+                          <button
+                            key={f.name}
+                            onClick={() => setNewCalcFormula(prev => prev + f.name + '(')}
+                            className="px-2 py-1 bg-background rounded text-xs hover:bg-primary/10"
+                            title={`${f.syntax} - ${f.description}`}
+                          >
+                            {f.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="font-medium">テキスト関数:</p>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {getAvailableFunctions().filter(f => f.category === 'text').map(f => (
+                          <button
+                            key={f.name}
+                            onClick={() => setNewCalcFormula(prev => prev + f.name + '(')}
+                            className="px-2 py-1 bg-background rounded text-xs hover:bg-primary/10"
+                            title={`${f.syntax} - ${f.description}`}
+                          >
+                            {f.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="pt-2 border-t">
+                      <p className="font-medium">例:</p>
+                      <ul className="list-disc list-inside space-y-1 mt-1">
+                        <li><code className="bg-background px-1 rounded">amount * probability / 100</code> - 期待値</li>
+                        <li><code className="bg-background px-1 rounded">amount * 0.1</code> - 手数料10%</li>
+                        <li><code className="bg-background px-1 rounded">LEN(company)</code> - 会社名の文字数</li>
+                        <li><code className="bg-background px-1 rounded">IF(amount &gt; 1000000, 1, 0)</code> - 高額案件判定</li>
+                      </ul>
+                    </div>
                   </div>
                 )}
 
@@ -934,19 +1059,35 @@ export default function ReportBuilderPage() {
               <CardHeader>
                 <CardTitle>エリアで絞り込み</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {allAreas.map(area => (
-                    <Badge
-                      key={area}
-                      variant={areaFilters.includes(area) ? "default" : "outline"}
-                      className="cursor-pointer"
-                      onClick={() => toggleArea(area)}
-                    >
-                      {area}
-                    </Badge>
-                  ))}
+              <CardContent className="space-y-3">
+                <div className="relative">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="エリアを検索..."
+                    value={areaSearch}
+                    onChange={(e) => setAreaSearch(e.target.value)}
+                    className="pl-8 h-9"
+                  />
                 </div>
+                <div className="flex flex-wrap gap-2 max-h-[150px] overflow-y-auto">
+                  {allAreas
+                    .filter(area => area.toLowerCase().includes(areaSearch.toLowerCase()))
+                    .map(area => (
+                      <Badge
+                        key={area}
+                        variant={areaFilters.includes(area) ? "default" : "outline"}
+                        className="cursor-pointer"
+                        onClick={() => toggleArea(area)}
+                      >
+                        {area}
+                      </Badge>
+                    ))}
+                </div>
+                {areaFilters.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    選択中: {areaFilters.join(', ')}
+                  </p>
+                )}
               </CardContent>
             </Card>
 
@@ -954,19 +1095,35 @@ export default function ReportBuilderPage() {
               <CardHeader>
                 <CardTitle>商材で絞り込み</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {allProducts.map(product => (
-                    <Badge
-                      key={product}
-                      variant={productFilters.includes(product) ? "default" : "outline"}
-                      className="cursor-pointer"
-                      onClick={() => toggleProduct(product)}
-                    >
-                      {product}
-                    </Badge>
-                  ))}
+              <CardContent className="space-y-3">
+                <div className="relative">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="商材を検索..."
+                    value={productSearch}
+                    onChange={(e) => setProductSearch(e.target.value)}
+                    className="pl-8 h-9"
+                  />
                 </div>
+                <div className="flex flex-wrap gap-2 max-h-[150px] overflow-y-auto">
+                  {allProducts
+                    .filter(product => product.toLowerCase().includes(productSearch.toLowerCase()))
+                    .map(product => (
+                      <Badge
+                        key={product}
+                        variant={productFilters.includes(product) ? "default" : "outline"}
+                        className="cursor-pointer"
+                        onClick={() => toggleProduct(product)}
+                      >
+                        {product}
+                      </Badge>
+                    ))}
+                </div>
+                {productFilters.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    選択中: {productFilters.join(', ')}
+                  </p>
+                )}
               </CardContent>
             </Card>
 
@@ -974,19 +1131,35 @@ export default function ReportBuilderPage() {
               <CardHeader>
                 <CardTitle>チームで絞り込み</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {allTeams.map(team => (
-                    <Badge
-                      key={team}
-                      variant={teamFilters.includes(team) ? "default" : "outline"}
-                      className="cursor-pointer"
-                      onClick={() => toggleTeam(team)}
-                    >
-                      {team}
-                    </Badge>
-                  ))}
+              <CardContent className="space-y-3">
+                <div className="relative">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="チームを検索..."
+                    value={teamSearch}
+                    onChange={(e) => setTeamSearch(e.target.value)}
+                    className="pl-8 h-9"
+                  />
                 </div>
+                <div className="flex flex-wrap gap-2 max-h-[150px] overflow-y-auto">
+                  {allTeams
+                    .filter(team => team.toLowerCase().includes(teamSearch.toLowerCase()))
+                    .map(team => (
+                      <Badge
+                        key={team}
+                        variant={teamFilters.includes(team) ? "default" : "outline"}
+                        className="cursor-pointer"
+                        onClick={() => toggleTeam(team)}
+                      >
+                        {team}
+                      </Badge>
+                    ))}
+                </div>
+                {teamFilters.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    選択中: {teamFilters.join(', ')}
+                  </p>
+                )}
               </CardContent>
             </Card>
 
@@ -1258,6 +1431,7 @@ export default function ReportBuilderPage() {
                   {/* Quick chart type switcher */}
                   <div className="flex gap-1">
                     {[
+                      { type: "table" as ChartType, icon: Table2, label: "表" },
                       { type: "bar" as ChartType, icon: BarChart3, label: "棒" },
                       { type: "line" as ChartType, icon: LineChart, label: "線" },
                       { type: "pie" as ChartType, icon: PieChart, label: "円" },
