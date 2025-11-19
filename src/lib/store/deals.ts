@@ -1245,6 +1245,31 @@ class DealsStore {
   getTeams(): string[] {
     return this.getUniqueValues('team')
   }
+
+  // Get deals for a specific group (for drill-down)
+  getDealsForGroup(config: CustomReportConfig, groupName: string): Deal[] {
+    let deals = [...this.deals]
+
+    // Apply basic filters
+    deals = this.applyBasicFilters(deals, config.filters)
+
+    // Apply advanced filters
+    if (config.advancedFilters && config.advancedFilters.length > 0) {
+      deals = this.applyAdvancedFilters(deals, config.advancedFilters)
+    }
+
+    // Get dimensions
+    const dimensions = config.dimensions && config.dimensions.length > 0
+      ? config.dimensions
+      : [config.dimension]
+
+    // Filter deals that belong to this group
+    return deals.filter(deal => {
+      const keys = dimensions.map(dim => this.getDimensionValue(deal, dim))
+      const key = keys.join(' / ')
+      return key === groupName
+    })
+  }
 }
 
 export const dealsStore = new DealsStore()

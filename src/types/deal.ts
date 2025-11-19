@@ -63,7 +63,7 @@ export interface Trigger {
 }
 
 // Custom Report Types for Tableau-like BI functionality
-export type ChartType = "bar" | "pie" | "line" | "area" | "scatter" | "radar" | "funnel" | "stackedBar" | "stackedArea"
+export type ChartType = "bar" | "pie" | "line" | "area" | "scatter" | "radar" | "funnel" | "stackedBar" | "stackedArea" | "table"
 
 // Extended dimension field to include all Deal fields
 export type DimensionField = "status" | "area" | "product" | "team" | "priority" | "month" | "quarter" | "year" | "company" | "contactPerson" | "expectedCloseDate" | "createdAt" | "updatedAt" | "tags"

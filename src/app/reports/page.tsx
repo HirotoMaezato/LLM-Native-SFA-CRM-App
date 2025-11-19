@@ -6,8 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { dealsStore } from "@/lib/store/deals"
-import { CustomReport, ReportDataPoint } from "@/types/deal"
-import { BarChart3, PieChart, TrendingUp, Calendar, Plus, Trash2, LineChart, AreaChart, Target, Layers } from "lucide-react"
+import { CustomReport, ReportDataPoint, Deal, CustomReportConfig } from "@/types/deal"
+import { BarChart3, PieChart, TrendingUp, Calendar, Plus, Trash2, LineChart, AreaChart, Target, Layers, Table2, X, ArrowUpRight } from "lucide-react"
 import {
   BarChart,
   Bar,
@@ -47,6 +47,28 @@ export default function ReportsPage() {
   const deals = dealsStore.getDeals()
   const customReports = dealsStore.getCustomReports()
 
+  // Drill-down state
+  const [drillDownData, setDrillDownData] = useState<{
+    groupName: string
+    deals: Deal[]
+    config: CustomReportConfig
+  } | null>(null)
+
+  // Handle drill-down
+  const handleDrillDown = (groupName: string, config: CustomReportConfig) => {
+    const groupDeals = dealsStore.getDealsForGroup(config, groupName)
+    setDrillDownData({
+      groupName,
+      deals: groupDeals,
+      config
+    })
+  }
+
+  // Close drill-down
+  const closeDrillDown = () => {
+    setDrillDownData(null)
+  }
+
   const handleDeleteCustomReport = (id: string) => {
     if (confirm("このカスタムレポートを削除しますか？")) {
       dealsStore.deleteCustomReport(id)
@@ -65,6 +87,7 @@ export default function ReportsPage() {
       case "stackedArea": return AreaChart
       case "radar": return Target
       case "scatter": return Layers
+      case "table": return Table2
       default: return BarChart3
     }
   }
@@ -104,6 +127,69 @@ export default function ReportsPage() {
       )
     }
 
+    // Table chart type rendering
+    if (chartType === "table") {
+      return (
+        <div className="h-[300px] w-full overflow-auto">
+          <table className="w-full text-sm">
+            <thead className="sticky top-0 bg-background border-b">
+              <tr>
+                <th className="text-left p-2 font-medium">項目</th>
+                {metricKeys.map((key) => (
+                  <th key={key} className="text-right p-2 font-medium">{key}</th>
+                ))}
+                <th className="text-center p-2 font-medium w-8"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((item, index) => (
+                <tr
+                  key={index}
+                  className="border-b hover:bg-muted/50 cursor-pointer"
+                  onClick={() => handleDrillDown(item.name, report.config)}
+                >
+                  <td className="p-2">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-2 h-2 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                      />
+                      {item.name}
+                    </div>
+                  </td>
+                  {metricKeys.map((key) => {
+                    const value = item[key] as number
+                    return (
+                      <td key={key} className="p-2 text-right font-mono">
+                        {formatValue(value, key)}
+                      </td>
+                    )
+                  })}
+                  <td className="p-2 text-center">
+                    <ArrowUpRight className="h-3 w-3 text-muted-foreground" />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot className="border-t-2 bg-muted/30">
+              <tr>
+                <td className="p-2 font-medium">合計</td>
+                {metricKeys.map((key) => {
+                  const total = data.reduce((sum, item) => sum + (item[key] as number), 0)
+                  return (
+                    <td key={key} className="p-2 text-right font-mono font-medium">
+                      {formatValue(total, key)}
+                    </td>
+                  )
+                })}
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )
+    }
+
     return (
       <div className="h-[300px] w-full">
         <ResponsiveContainer width="100%" height="100%">
@@ -118,9 +204,14 @@ export default function ReportsPage() {
                 outerRadius={80}
                 fill="#8884d8"
                 dataKey={metricKeys[0]}
+                onClick={(entry) => {
+                  if (entry && entry.name) {
+                    handleDrillDown(entry.name, report.config)
+                  }
+                }}
               >
                 {data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} cursor="pointer" />
                 ))}
               </Pie>
               <Tooltip formatter={(value: number) => formatValue(value, metricKeys[0])} />
@@ -250,7 +341,15 @@ export default function ReportsPage() {
               </Funnel>
             </FunnelChart>
           ) : (
-            <BarChart data={data}>
+            <BarChart
+              data={data}
+              onClick={(e: unknown) => {
+                const event = e as { activePayload?: Array<{ payload: { name: string } }> }
+                if (event && event.activePayload && event.activePayload[0]) {
+                  handleDrillDown(event.activePayload[0].payload.name, report.config)
+                }
+              }}
+            >
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" tick={{ fontSize: 12 }} />
               <YAxis tick={{ fontSize: 12 }} />
@@ -262,6 +361,7 @@ export default function ReportsPage() {
                   dataKey={key}
                   fill={COLORS[index % COLORS.length]}
                   stackId={chartType === "stackedBar" ? "1" : undefined}
+                  cursor="pointer"
                 />
               ))}
             </BarChart>
@@ -653,6 +753,84 @@ export default function ReportsPage() {
               )
             })()}
           </>
+        )}
+
+        {/* Drill-down Modal */}
+        {drillDownData && (
+          <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center">
+            <div className="w-full max-w-2xl max-h-[80vh] bg-background border rounded-t-lg sm:rounded-lg shadow-lg flex flex-col">
+              <div className="flex items-center justify-between p-4 border-b">
+                <div>
+                  <h3 className="font-semibold text-lg">ドリルダウン: {drillDownData.groupName}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {drillDownData.deals.length}件の案件
+                  </p>
+                </div>
+                <Button variant="ghost" size="icon" onClick={closeDrillDown}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4">
+                {drillDownData.deals.length > 0 ? (
+                  <div className="space-y-3">
+                    {drillDownData.deals.map((deal) => (
+                      <Card key={deal.id} className="hover:shadow-md transition-shadow">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-sm">{deal.title}</h4>
+                              <p className="text-xs text-muted-foreground">{deal.company}</p>
+                            </div>
+                            <Badge variant={
+                              deal.status === "成約" ? "default" :
+                              deal.status === "失注" ? "destructive" :
+                              "secondary"
+                            }>
+                              {deal.status}
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 mt-3 text-xs">
+                            <div>
+                              <span className="text-muted-foreground">金額: </span>
+                              <span className="font-medium">¥{(deal.amount / 10000).toFixed(0)}万</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">確度: </span>
+                              <span className="font-medium">{deal.probability}%</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">担当: </span>
+                              <span>{deal.contactPerson}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">予定日: </span>
+                              <span>{deal.expectedCloseDate}</span>
+                            </div>
+                          </div>
+                          {deal.area && deal.product && (
+                            <div className="flex gap-1 mt-2">
+                              <Badge variant="outline" className="text-xs">{deal.area}</Badge>
+                              <Badge variant="outline" className="text-xs">{deal.product}</Badge>
+                              {deal.team && <Badge variant="outline" className="text-xs">{deal.team}</Badge>}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center text-muted-foreground py-8">
+                    該当する案件がありません
+                  </p>
+                )}
+              </div>
+              <div className="p-4 border-t">
+                <Button variant="outline" className="w-full" onClick={closeDrillDown}>
+                  閉じる
+                </Button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
