@@ -1515,9 +1515,89 @@ export default function ReportBuilderPage() {
 
         {currentStep === "preview" && (
           <div className="space-y-4">
+            {/* レポートプレビュー - メインセクション */}
+            <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Eye className="h-6 w-6 text-primary" />
+                  <div>
+                    <CardTitle className="text-lg">レポートプレビュー</CardTitle>
+                    <CardDescription>作成するレポートの最終確認</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* プレビュー情報サマリー */}
+                <div className="grid grid-cols-3 gap-3 p-3 bg-background rounded-lg border">
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground mb-1">データ件数</p>
+                    <p className="text-xl font-bold text-primary">{previewData.length}</p>
+                    <p className="text-[10px] text-muted-foreground">項目</p>
+                  </div>
+                  <div className="text-center border-l border-r">
+                    <p className="text-xs text-muted-foreground mb-1">指標数</p>
+                    <p className="text-xl font-bold text-primary">{metrics.length}</p>
+                    <p className="text-[10px] text-muted-foreground">指標</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground mb-1">グラフタイプ</p>
+                    <p className="text-sm font-bold text-primary mt-1">{chartTypes.find(c => c.type === chartType)?.label}</p>
+                  </div>
+                </div>
+
+                {/* グラフタイプ切り替え */}
+                <div className="flex items-center justify-between p-2 bg-background rounded-lg border">
+                  <span className="text-sm font-medium">グラフ表示切替:</span>
+                  <div className="flex gap-1">
+                    {[
+                      { type: "table" as ChartType, icon: Table2, label: "表" },
+                      { type: "bar" as ChartType, icon: BarChart3, label: "棒" },
+                      { type: "line" as ChartType, icon: LineChart, label: "線" },
+                      { type: "pie" as ChartType, icon: PieChart, label: "円" },
+                      { type: "area" as ChartType, icon: AreaChart, label: "面" },
+                    ].map(({ type, icon: Icon, label }) => (
+                      <Button
+                        key={type}
+                        variant={chartType === type ? "default" : "outline"}
+                        size="sm"
+                        className="h-8 px-3"
+                        onClick={() => setChartType(type)}
+                      >
+                        <Icon className="h-3 w-3 mr-1" />
+                        {label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* グラフ表示エリア */}
+                <div className="bg-background rounded-lg border p-4">
+                  <div className="mb-2">
+                    <h4 className="text-sm font-semibold flex items-center gap-2">
+                      {reportName || "新しいレポート"}
+                      {reportDescription && (
+                        <span className="text-xs text-muted-foreground font-normal">
+                          - {reportDescription}
+                        </span>
+                      )}
+                    </h4>
+                  </div>
+                  {renderChart()}
+                  {previewData.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <p className="text-sm">現在の設定ではデータがありません</p>
+                      <p className="text-xs mt-1">フィルター条件を変更してください</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* レポート情報入力 */}
             <Card>
               <CardHeader>
                 <CardTitle>レポート情報</CardTitle>
+                <CardDescription>レポート名と説明を入力してください</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
@@ -1526,6 +1606,7 @@ export default function ReportBuilderPage() {
                     placeholder="例: 月別売上推移"
                     value={reportName}
                     onChange={(e) => setReportName(e.target.value)}
+                    className="mt-1"
                   />
                 </div>
                 <div>
@@ -1534,12 +1615,13 @@ export default function ReportBuilderPage() {
                     placeholder="例: 各月の売上金額の推移を表示"
                     value={reportDescription}
                     onChange={(e) => setReportDescription(e.target.value)}
+                    className="mt-1"
                   />
                 </div>
               </CardContent>
             </Card>
 
-            {/* Sorting and Limit Options */}
+            {/* 表示オプション */}
             <Card>
               <CardHeader>
                 <CardTitle>表示オプション</CardTitle>
@@ -1553,7 +1635,7 @@ export default function ReportBuilderPage() {
                       value={sortBy}
                       onValueChange={setSortBy}
                     >
-                      <SelectTrigger className="h-9">
+                      <SelectTrigger className="h-9 mt-1">
                         <SelectValue placeholder="なし" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1573,7 +1655,7 @@ export default function ReportBuilderPage() {
                       onValueChange={(value) => setSortOrder(value as "asc" | "desc")}
                       disabled={!sortBy}
                     >
-                      <SelectTrigger className="h-9">
+                      <SelectTrigger className="h-9 mt-1">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -1591,147 +1673,145 @@ export default function ReportBuilderPage() {
                     value={limit}
                     onChange={(e) => setLimit(e.target.value)}
                     min="1"
-                    className="h-9"
+                    className="h-9 mt-1"
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    未設定の場合は全件表示されます
+                  </p>
                 </div>
               </CardContent>
             </Card>
 
+            {/* 設定内容サマリー */}
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Eye className="h-5 w-5" />
-                    <CardTitle>プレビュー</CardTitle>
+                <CardTitle>設定内容の確認</CardTitle>
+                <CardDescription>レポートの設定内容</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="p-3 bg-muted/50 rounded-lg">
+                      <p className="text-xs text-muted-foreground mb-1">グラフタイプ</p>
+                      <p className="font-medium">{chartTypes.find(c => c.type === chartType)?.label}</p>
+                    </div>
+                    <div className="p-3 bg-muted/50 rounded-lg">
+                      <p className="text-xs text-muted-foreground mb-1">分析軸</p>
+                      <p className="font-medium">
+                        {dimensions.map(d => allDimensions.find(ad => ad.field === d)?.label).join(' / ')}
+                      </p>
+                    </div>
                   </div>
-                  {/* Quick chart type switcher */}
-                  <div className="flex gap-1">
-                    {[
-                      { type: "table" as ChartType, icon: Table2, label: "表" },
-                      { type: "bar" as ChartType, icon: BarChart3, label: "棒" },
-                      { type: "line" as ChartType, icon: LineChart, label: "線" },
-                      { type: "pie" as ChartType, icon: PieChart, label: "円" },
-                      { type: "area" as ChartType, icon: AreaChart, label: "面" },
-                    ].map(({ type, icon: Icon, label }) => (
-                      <Button
-                        key={type}
-                        variant={chartType === type ? "default" : "ghost"}
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => setChartType(type)}
-                        title={label}
-                      >
-                        <Icon className="h-3 w-3" />
-                      </Button>
+
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <p className="text-xs text-muted-foreground mb-1">指標</p>
+                    <div className="flex flex-wrap gap-1">
+                      {metrics.map((m, idx) => (
+                        <Badge key={idx} variant="secondary">{m.label}</Badge>
+                      ))}
+                    </div>
+                  </div>
+
+                  {calculatedFields.length > 0 && (
+                    <div className="p-3 bg-muted/50 rounded-lg">
+                      <p className="text-xs text-muted-foreground mb-1">計算フィールド</p>
+                      <div className="space-y-1">
+                        {calculatedFields.map((field) => (
+                          <div key={field.id} className="text-xs">
+                            <span className="font-medium">{field.name}</span>
+                            <span className="text-muted-foreground ml-2 font-mono">{field.formula}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {(statusFilters.length > 0 || priorityFilters.length > 0 || areaFilters.length > 0 ||
+                    productFilters.length > 0 || teamFilters.length > 0 || advancedFilters.length > 0) && (
+                    <div className="p-3 bg-muted/50 rounded-lg">
+                      <p className="text-xs text-muted-foreground mb-2">絞り込み条件</p>
+                      <div className="space-y-1 text-xs">
+                        {statusFilters.length > 0 && (
+                          <div>
+                            <span className="font-medium">ステータス: </span>
+                            <span className="text-muted-foreground">{statusFilters.join(", ")}</span>
+                          </div>
+                        )}
+                        {priorityFilters.length > 0 && (
+                          <div>
+                            <span className="font-medium">優先度: </span>
+                            <span className="text-muted-foreground">{priorityFilters.join(", ")}</span>
+                          </div>
+                        )}
+                        {areaFilters.length > 0 && (
+                          <div>
+                            <span className="font-medium">エリア: </span>
+                            <span className="text-muted-foreground">{areaFilters.join(", ")}</span>
+                          </div>
+                        )}
+                        {productFilters.length > 0 && (
+                          <div>
+                            <span className="font-medium">商材: </span>
+                            <span className="text-muted-foreground">{productFilters.join(", ")}</span>
+                          </div>
+                        )}
+                        {teamFilters.length > 0 && (
+                          <div>
+                            <span className="font-medium">チーム: </span>
+                            <span className="text-muted-foreground">{teamFilters.join(", ")}</span>
+                          </div>
+                        )}
+                        {advancedFilters.length > 0 && (
+                          <div>
+                            <span className="font-medium">高度な絞り込み: </span>
+                            <span className="text-muted-foreground">{advancedFilters.length}件の条件</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* データ詳細 */}
+            {previewData.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>データ詳細</CardTitle>
+                  <CardDescription>レポートに含まれるデータの一覧</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                    {previewData.map((item, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                          />
+                          <span className="text-sm font-medium">{item.name}</span>
+                        </div>
+                        <div className="text-right">
+                          {metrics.map((m, mIndex) => {
+                            const key = m.label || `${m.type}_${m.field}`
+                            const value = item[key] as number
+                            return (
+                              <div key={mIndex} className="text-sm">
+                                {metrics.length > 1 && (
+                                  <span className="text-xs text-muted-foreground mr-1">{m.label}:</span>
+                                )}
+                                <span className="font-medium">{formatValue(value, m.label)}</span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
                     ))}
                   </div>
-                </div>
-                <CardDescription>
-                  グラフタイプを切り替えて最適な表示を確認
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {renderChart()}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>設定内容</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">グラフタイプ</span>
-                    <span className="font-medium">{chartTypes.find(c => c.type === chartType)?.label}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">分析軸</span>
-                    <span className="font-medium">
-                      {dimensions.map(d => allDimensions.find(ad => ad.field === d)?.label).join(' / ')}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">指標</span>
-                    <span className="font-medium">{metrics.map(m => m.label).join(', ')}</span>
-                  </div>
-                  {calculatedFields.length > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">計算フィールド</span>
-                      <span className="font-medium">{calculatedFields.length}件</span>
-                    </div>
-                  )}
-                  {statusFilters.length > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">ステータス</span>
-                      <span className="font-medium">{statusFilters.join(", ")}</span>
-                    </div>
-                  )}
-                  {priorityFilters.length > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">優先度</span>
-                      <span className="font-medium">{priorityFilters.join(", ")}</span>
-                    </div>
-                  )}
-                  {areaFilters.length > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">エリア</span>
-                      <span className="font-medium">{areaFilters.join(", ")}</span>
-                    </div>
-                  )}
-                  {productFilters.length > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">商材</span>
-                      <span className="font-medium">{productFilters.join(", ")}</span>
-                    </div>
-                  )}
-                  {teamFilters.length > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">チーム</span>
-                      <span className="font-medium">{teamFilters.join(", ")}</span>
-                    </div>
-                  )}
-                  {advancedFilters.length > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">高度な絞り込み</span>
-                      <span className="font-medium">{advancedFilters.length}件</span>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>データ詳細</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                  {previewData.map((item, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                        />
-                        <span className="text-sm">{item.name}</span>
-                      </div>
-                      <div className="text-right">
-                        {metrics.map((m, mIndex) => {
-                          const key = m.label || `${m.type}_${m.field}`
-                          const value = item[key] as number
-                          return (
-                            <div key={mIndex} className="text-sm font-medium">
-                              {formatValue(value, m.label)}
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
 
