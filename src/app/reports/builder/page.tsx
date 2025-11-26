@@ -1572,23 +1572,19 @@ export default function ReportBuilderPage() {
 
                 {/* グラフ表示エリア */}
                 <div className="bg-background rounded-lg border p-4">
-                  <div className="mb-2">
-                    <h4 className="text-sm font-semibold flex items-center gap-2">
-                      {reportName || "新しいレポート"}
-                      {reportDescription && (
-                        <span className="text-xs text-muted-foreground font-normal">
-                          - {reportDescription}
-                        </span>
-                      )}
-                    </h4>
-                  </div>
-                  {renderChart()}
-                  {previewData.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <p className="text-sm">現在の設定ではデータがありません</p>
-                      <p className="text-xs mt-1">フィルター条件を変更してください</p>
+                  {reportName && (
+                    <div className="mb-2">
+                      <h4 className="text-sm font-semibold flex items-center gap-2">
+                        {reportName}
+                        {reportDescription && (
+                          <span className="text-xs text-muted-foreground font-normal">
+                            - {reportDescription}
+                          </span>
+                        )}
+                      </h4>
                     </div>
                   )}
+                  {renderChart()}
                 </div>
               </CardContent>
             </Card>
