@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { contactsStore } from "@/lib/store/contacts"
 import { accountsStore } from "@/lib/store/accounts"
-import { ArrowLeft, Trash2, User, Mail, Phone, Smartphone, Building2, Briefcase } from "lucide-react"
+import { ArrowLeft, Edit, Trash2, User, Mail, Phone, Smartphone, Building2, Briefcase } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
@@ -47,9 +47,17 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
               戻る
             </Button>
           </Link>
-          <Button variant="destructive" size="sm" onClick={handleDelete}>
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          <div className="flex gap-2">
+            <Link href={`/contacts/${id}/edit`}>
+              <Button variant="outline" size="sm">
+                <Edit className="h-4 w-4 mr-1" />
+                編集
+              </Button>
+            </Link>
+            <Button variant="destructive" size="sm" onClick={handleDelete}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         {/* 名前と役職 */}

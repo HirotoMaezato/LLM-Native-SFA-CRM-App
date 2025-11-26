@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { dealsStore } from "@/lib/store/deals"
-import { ArrowLeft, Trash2, Building2, User, Mail, Phone, Calendar, DollarSign, TrendingUp } from "lucide-react"
+import { ArrowLeft, Edit, Trash2, Building2, User, Mail, Phone, Calendar, DollarSign, TrendingUp } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
@@ -45,9 +45,17 @@ export default function DealDetailPage({ params }: { params: Promise<{ id: strin
               戻る
             </Button>
           </Link>
-          <Button variant="destructive" size="sm" onClick={handleDelete}>
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          <div className="flex gap-2">
+            <Link href={`/deals/${id}/edit`}>
+              <Button variant="outline" size="sm">
+                <Edit className="h-4 w-4 mr-1" />
+                編集
+              </Button>
+            </Link>
+            <Button variant="destructive" size="sm" onClick={handleDelete}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         {/* タイトルとステータス */}
