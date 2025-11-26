@@ -2,6 +2,7 @@
 
 import { Deal, FilterCondition, Tag, CustomReport, CustomReportConfig, AdvancedFilter, MetricDefinition, ReportDataPoint, DimensionField, DealStatus, DealPriority } from "@/types/deal"
 import { evaluateFormula, evaluateCalculatedFields } from "@/lib/formula-parser"
+import { mockTags } from "@/lib/constants/mock-data"
 
 // ディメンションの全ての可能な値を定義
 const ALL_STATUSES: DealStatus[] = ["新規", "アプローチ中", "提案", "商談中", "クロージング", "成約", "失注"]
@@ -36,13 +37,6 @@ function generateMonthRange(startDate?: string, endDate?: string, existingMonths
 }
 
 // モックデータ
-const mockTags: Tag[] = [
-  { id: "1", name: "重要", color: "#ef4444" },
-  { id: "2", name: "至急", color: "#f59e0b" },
-  { id: "3", name: "大口", color: "#8b5cf6" },
-  { id: "4", name: "既存顧客", color: "#3b82f6" },
-]
-
 const mockDeals: Deal[] = [
   // 関東エリア
   {

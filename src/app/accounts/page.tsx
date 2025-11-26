@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { accountsStore } from "@/lib/store/accounts"
 import { AccountFilterCondition } from "@/types/account"
+import { formatRevenue } from "@/lib/utils/formatters"
 import { Search, Plus, SlidersHorizontal } from "lucide-react"
 import Link from "next/link"
 
@@ -29,15 +30,6 @@ export default function AccountsPage() {
       (account.representative && account.representative.toLowerCase().includes(searchQuery.toLowerCase())) ||
       account.region.toLowerCase().includes(searchQuery.toLowerCase())
     )
-  }
-
-  // 金額をフォーマット
-  const formatRevenue = (revenue?: number) => {
-    if (!revenue) return "-"
-    if (revenue >= 100000000) {
-      return `${(revenue / 100000000).toFixed(1)}億円`
-    }
-    return `${(revenue / 10000).toFixed(0)}万円`
   }
 
   return (

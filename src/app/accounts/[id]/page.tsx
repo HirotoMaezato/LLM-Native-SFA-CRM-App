@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { accountsStore } from "@/lib/store/accounts"
 import { contactsStore } from "@/lib/store/contacts"
-import { ArrowLeft, Edit, Trash2, Building2, User, Mail, Phone, Globe, MapPin, Users, DollarSign } from "lucide-react"
+import { formatRevenue } from "@/lib/utils/formatters"
+import { ArrowLeft, Trash2, Building2, User, Mail, Phone, Globe, MapPin, Users, DollarSign } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
@@ -36,15 +37,6 @@ export default function AccountDetailPage({ params }: { params: Promise<{ id: st
     }
   }
 
-  // 金額をフォーマット
-  const formatRevenue = (revenue?: number) => {
-    if (!revenue) return "-"
-    if (revenue >= 100000000) {
-      return `${(revenue / 100000000).toFixed(1)}億円`
-    }
-    return `${(revenue / 10000).toFixed(0)}万円`
-  }
-
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto p-4 space-y-4">
@@ -56,17 +48,9 @@ export default function AccountDetailPage({ params }: { params: Promise<{ id: st
               戻る
             </Button>
           </Link>
-          <div className="flex gap-2">
-            <Link href={`/accounts/${id}/edit`}>
-              <Button variant="outline" size="sm">
-                <Edit className="h-4 w-4 mr-1" />
-                編集
-              </Button>
-            </Link>
-            <Button variant="destructive" size="sm" onClick={handleDelete}>
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
+          <Button variant="destructive" size="sm" onClick={handleDelete}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
         </div>
 
         {/* タイトルとステータス */}

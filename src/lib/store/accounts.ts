@@ -2,14 +2,7 @@
 
 import { Account, AccountFilterCondition, AccountStatus, AccountIndustry } from "@/types/account"
 import { Tag } from "@/types/deal"
-
-// モックタグ
-const mockTags: Tag[] = [
-  { id: "1", name: "重要", color: "#ef4444" },
-  { id: "2", name: "至急", color: "#f59e0b" },
-  { id: "3", name: "大口", color: "#8b5cf6" },
-  { id: "4", name: "既存顧客", color: "#3b82f6" },
-]
+import { mockTags } from "@/lib/constants/mock-data"
 
 // モックアカウントデータ（商談データに基づく会社）
 const mockAccounts: Account[] = [
