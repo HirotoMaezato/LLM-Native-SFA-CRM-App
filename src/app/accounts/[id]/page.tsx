@@ -73,18 +73,7 @@ export default function AccountDetailPage({ params }: { params: Promise<{ id: st
                   {account.status}
                 </Badge>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {account.industry && <Badge variant="outline" className="text-sm">{account.industry}</Badge>}
-                {account.tags.map(tag => (
-                  <Badge
-                    key={tag.id}
-                    variant="outline"
-                    style={{ borderColor: tag.color, color: tag.color }}
-                  >
-                    {tag.name}
-                  </Badge>
-                ))}
-              </div>
+              {account.industry && <Badge variant="outline" className="text-sm">{account.industry}</Badge>}
             </div>
           </CardHeader>
         </Card>
