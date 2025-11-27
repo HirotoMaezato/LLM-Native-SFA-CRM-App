@@ -48,6 +48,7 @@
 
 - **フレームワーク**: Next.js 15 (App Router)
 - **言語**: TypeScript
+- **バックエンド**: Supabase (PostgreSQL)
 - **スタイリング**: Tailwind CSS
 - **UIコンポーネント**: Shadcn UI
 - **グラフ**: Recharts
@@ -58,16 +59,41 @@
 
 ### 前提条件
 - Node.js 18以上
+- Supabaseアカウント（無料で作成可能）
 
 ### インストール
 
 ```bash
 # 依存関係のインストール
 npm install
+```
 
-# 開発サーバーの起動
+### Supabaseバックエンドのセットアップ
+
+詳細な手順は [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) を参照してください。
+
+**簡単な手順:**
+
+1. [Supabase](https://supabase.com)でプロジェクトを作成
+2. `supabase/migrations/` 内のSQLファイルをSupabase SQL Editorで実行
+3. `.env.local` ファイルを作成して、SupabaseのURLとAPIキーを設定
+
+```bash
+cp .env.local.example .env.local
+# .env.local を編集してSupabaseの認証情報を設定
+```
+
+### 開発サーバーの起動
+
+```bash
 npm run dev
+```
 
+ブラウザで http://localhost:3000 を開いて確認してください。
+
+### ビルドと本番起動
+
+```bash
 # ビルド
 npm run build
 
@@ -82,25 +108,25 @@ src/
 ├── app/                      # Next.js App Router
 │   ├── page.tsx             # ダッシュボード
 │   ├── deals/               # 商談管理
-│   ├── reports/page.tsx     # レポート
+│   ├── accounts/            # 取引先管理
+│   ├── contacts/            # 取引先責任者管理
+│   ├── reports/             # レポート
 │   ├── ai-coach/page.tsx    # AI営業コーチ
 │   └── settings/page.tsx    # 設定
 ├── components/
 │   ├── layout/              # レイアウトコンポーネント
 │   └── ui/                  # UIコンポーネント
 ├── lib/
-│   └── store/               # データストア
-└── types/
-    └── deal.ts              # 型定義
+│   ├── actions/             # Server Actions (データ操作)
+│   ├── supabase/            # Supabase クライアント設定
+│   └── store/               # クライアント側データストア
+├── types/                   # TypeScript型定義
+│   ├── deal.ts
+│   ├── account.ts
+│   └── contact.ts
+└── supabase/
+    └── migrations/          # データベースマイグレーション
 ```
-
-## 開発サーバーの起動
-
-```bash
-npm run dev
-```
-
-ブラウザで http://localhost:3000 を開いて確認してください。
 
 ## ライセンス
 
