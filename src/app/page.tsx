@@ -100,13 +100,6 @@ export default function Home() {
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">{deal.company}</p>
-                    <div className="flex gap-2 flex-wrap">
-                      {deal.tags.map(tag => (
-                        <Badge key={tag.id} variant="outline" className="text-xs" style={{ borderColor: tag.color }}>
-                          {tag.name}
-                        </Badge>
-                      ))}
-                    </div>
                   </div>
                   <div className="text-right">
                     <p className="font-semibold">¥{(deal.amount / 10000).toFixed(0)}万</p>
