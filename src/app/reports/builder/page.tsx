@@ -170,7 +170,6 @@ export default function ReportBuilderPage() {
   const allAreas = dealsStore.getAreas()
   const allProducts = dealsStore.getProducts()
   const allTeams = dealsStore.getTeams()
-  const allTags = dealsStore.getTags()
 
   const steps: { key: Step; label: string; number: number }[] = [
     { key: "chart", label: "グラフ", number: 1 },
