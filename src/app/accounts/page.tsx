@@ -146,22 +146,6 @@ export default function AccountsPage() {
                     )}
                   </div>
 
-                  {/* タグ */}
-                  {account.tags.length > 0 && (
-                    <div className="flex gap-2 flex-wrap">
-                      {account.tags.map(tag => (
-                        <Badge
-                          key={tag.id}
-                          variant="outline"
-                          className="text-xs"
-                          style={{ borderColor: tag.color, color: tag.color }}
-                        >
-                          {tag.name}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-
                   {/* メタ情報 */}
                   <div className="flex gap-4 text-xs text-muted-foreground">
                     {account.representative && <span>代表: {account.representative}</span>}

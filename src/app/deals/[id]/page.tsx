@@ -72,15 +72,6 @@ export default function DealDetailPage({ params }: { params: Promise<{ id: strin
               </div>
               <div className="flex flex-wrap gap-2">
                 <Badge variant="outline" className="text-sm">{deal.status}</Badge>
-                {deal.tags.map(tag => (
-                  <Badge
-                    key={tag.id}
-                    variant="outline"
-                    style={{ borderColor: tag.color, color: tag.color }}
-                  >
-                    {tag.name}
-                  </Badge>
-                ))}
               </div>
             </div>
           </CardHeader>

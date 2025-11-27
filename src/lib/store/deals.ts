@@ -1,6 +1,6 @@
 "use client"
 
-import { Deal, FilterCondition, Tag, CustomReport, CustomReportConfig, AdvancedFilter, MetricDefinition, ReportDataPoint, DimensionField, DealStatus, DealPriority } from "@/types/deal"
+import { Deal, FilterCondition, CustomReport, CustomReportConfig, AdvancedFilter, MetricDefinition, ReportDataPoint, DimensionField, DealStatus, DealPriority } from "@/types/deal"
 import { evaluateFormula, evaluateCalculatedFields } from "@/lib/formula-parser"
 
 // ディメンションの全ての可能な値を定義
@@ -36,13 +36,6 @@ function generateMonthRange(startDate?: string, endDate?: string, existingMonths
 }
 
 // モックデータ
-const mockTags: Tag[] = [
-  { id: "1", name: "重要", color: "#ef4444" },
-  { id: "2", name: "至急", color: "#f59e0b" },
-  { id: "3", name: "大口", color: "#8b5cf6" },
-  { id: "4", name: "既存顧客", color: "#3b82f6" },
-]
-
 const mockDeals: Deal[] = [
   // 関東エリア
   {
@@ -59,7 +52,6 @@ const mockDeals: Deal[] = [
     expectedCloseDate: "2025-12-15",
     createdAt: "2025-10-01",
     updatedAt: "2025-11-15",
-    tags: [mockTags[0], mockTags[2]],
     description: "既存システムの老朽化に伴うCRM刷新案件",
     area: "関東",
     product: "CRMシステム",
@@ -80,7 +72,6 @@ const mockDeals: Deal[] = [
     expectedCloseDate: "2025-12-30",
     createdAt: "2025-10-15",
     updatedAt: "2025-11-10",
-    tags: [mockTags[3]],
     description: "コーポレートサイトの全面リニューアル",
     area: "関東",
     product: "Webサイト制作",
@@ -100,7 +91,6 @@ const mockDeals: Deal[] = [
     expectedCloseDate: "2026-01-31",
     createdAt: "2025-11-01",
     updatedAt: "2025-11-17",
-    tags: [mockTags[0], mockTags[1], mockTags[2]],
     description: "AWS移行とマイクロサービス化",
     area: "関東",
     product: "クラウドサービス",
@@ -122,7 +112,6 @@ const mockDeals: Deal[] = [
     expectedCloseDate: "2026-01-15",
     createdAt: "2025-10-20",
     updatedAt: "2025-11-16",
-    tags: [mockTags[0], mockTags[2]],
     description: "工場向けセキュリティ監視システムの導入",
     area: "関西",
     product: "セキュリティソリューション",
@@ -143,7 +132,6 @@ const mockDeals: Deal[] = [
     expectedCloseDate: "2025-12-20",
     createdAt: "2025-10-25",
     updatedAt: "2025-11-14",
-    tags: [mockTags[3]],
     description: "食品ECサイトの新規構築",
     area: "関西",
     product: "Webサイト制作",
@@ -163,7 +151,6 @@ const mockDeals: Deal[] = [
     expectedCloseDate: "2025-11-30",
     createdAt: "2025-09-15",
     updatedAt: "2025-11-17",
-    tags: [mockTags[0], mockTags[1], mockTags[2]],
     description: "物流データの可視化と予測分析",
     area: "関西",
     product: "データ分析基盤",
@@ -185,7 +172,6 @@ const mockDeals: Deal[] = [
     expectedCloseDate: "2026-02-15",
     createdAt: "2025-10-10",
     updatedAt: "2025-11-15",
-    tags: [mockTags[0]],
     description: "スマート農業向けIoTセンサーシステム",
     area: "東北",
     product: "クラウドサービス",
@@ -206,7 +192,6 @@ const mockDeals: Deal[] = [
     expectedCloseDate: "2025-10-31",
     createdAt: "2025-08-01",
     updatedAt: "2025-10-31",
-    tags: [mockTags[3]],
     description: "地域観光ガイドアプリの開発",
     area: "東北",
     product: "モバイルアプリ開発",
@@ -227,7 +212,6 @@ const mockDeals: Deal[] = [
     expectedCloseDate: "2026-03-31",
     createdAt: "2025-11-05",
     updatedAt: "2025-11-17",
-    tags: [mockTags[0], mockTags[2]],
     description: "製造ラインのデジタル化推進",
     area: "九州",
     product: "データ分析基盤",
@@ -248,7 +232,6 @@ const mockDeals: Deal[] = [
     expectedCloseDate: "2026-01-20",
     createdAt: "2025-10-28",
     updatedAt: "2025-11-16",
-    tags: [mockTags[3]],
     description: "倉庫在庫のリアルタイム管理",
     area: "九州",
     product: "CRMシステム",
@@ -268,7 +251,6 @@ const mockDeals: Deal[] = [
     expectedCloseDate: "2026-02-28",
     createdAt: "2025-10-15",
     updatedAt: "2025-11-15",
-    tags: [mockTags[0], mockTags[2]],
     description: "グループ社内ポータルサイトの統合・刷新",
     area: "九州",
     product: "Webサイト制作",
@@ -289,7 +271,6 @@ const mockDeals: Deal[] = [
     expectedCloseDate: "2025-12-10",
     createdAt: "2025-09-20",
     updatedAt: "2025-11-17",
-    tags: [mockTags[0], mockTags[1]],
     description: "インバウンド向け予約プラットフォーム",
     area: "北海道",
     product: "Webサイト制作",
@@ -310,7 +291,6 @@ const mockDeals: Deal[] = [
     expectedCloseDate: "2026-02-28",
     createdAt: "2025-10-30",
     updatedAt: "2025-11-16",
-    tags: [mockTags[2]],
     description: "酪農家向けデータ管理クラウドシステム",
     area: "北海道",
     product: "クラウドサービス",
@@ -331,7 +311,6 @@ const mockDeals: Deal[] = [
     expectedCloseDate: "2026-01-31",
     createdAt: "2025-10-05",
     updatedAt: "2025-11-15",
-    tags: [mockTags[0], mockTags[2]],
     description: "部品在庫・発注の自動化システム",
     area: "中部",
     product: "CRMシステム",
@@ -352,7 +331,6 @@ const mockDeals: Deal[] = [
     expectedCloseDate: "2026-06-30",
     createdAt: "2025-11-10",
     updatedAt: "2025-11-17",
-    tags: [mockTags[0], mockTags[1], mockTags[2]],
     description: "製造工程の完全自動化・IoT化",
     area: "中部",
     product: "データ分析基盤",
@@ -373,7 +351,6 @@ const mockDeals: Deal[] = [
     expectedCloseDate: "2025-11-15",
     createdAt: "2025-09-01",
     updatedAt: "2025-11-15",
-    tags: [mockTags[3]],
     description: "現場作業員向け勤怠管理アプリ",
     area: "中部",
     product: "モバイルアプリ開発",
@@ -394,7 +371,6 @@ const mockDeals: Deal[] = [
     expectedCloseDate: "2026-02-15",
     createdAt: "2025-10-12",
     updatedAt: "2025-11-16",
-    tags: [mockTags[0], mockTags[2]],
     description: "港湾コンテナ管理の最適化システム",
     area: "中国",
     product: "データ分析基盤",
@@ -415,7 +391,6 @@ const mockDeals: Deal[] = [
     expectedCloseDate: "2026-01-31",
     createdAt: "2025-10-22",
     updatedAt: "2025-11-15",
-    tags: [mockTags[0]],
     description: "医療情報セキュリティ強化",
     area: "中国",
     product: "セキュリティソリューション",
@@ -436,7 +411,6 @@ const mockDeals: Deal[] = [
     expectedCloseDate: "2025-12-20",
     createdAt: "2025-08-15",
     updatedAt: "2025-11-17",
-    tags: [mockTags[0], mockTags[1], mockTags[2]],
     description: "顧客管理・営業支援システムの刷新",
     area: "四国",
     product: "CRMシステム",
@@ -457,7 +431,6 @@ const mockDeals: Deal[] = [
     expectedCloseDate: "2026-03-31",
     createdAt: "2025-11-12",
     updatedAt: "2025-11-17",
-    tags: [],
     description: "農産物の生産履歴管理システム",
     area: "四国",
     product: "クラウドサービス",
@@ -479,7 +452,6 @@ const mockDeals: Deal[] = [
     expectedCloseDate: "2025-10-31",
     createdAt: "2025-07-01",
     updatedAt: "2025-10-31",
-    tags: [],
     description: "人事管理システムの提案",
     area: "関東",
     product: "CRMシステム",
@@ -500,7 +472,6 @@ const mockDeals: Deal[] = [
     expectedCloseDate: "2025-11-20",
     createdAt: "2025-08-20",
     updatedAt: "2025-11-20",
-    tags: [mockTags[0], mockTags[3]],
     description: "不動産営業担当者向けモバイルアプリ",
     area: "関西",
     product: "モバイルアプリ開発",
@@ -520,7 +491,6 @@ const mockDeals: Deal[] = [
     expectedCloseDate: "2026-03-15",
     createdAt: "2025-11-08",
     updatedAt: "2025-11-17",
-    tags: [mockTags[0]],
     description: "コールセンター業務効率化システム",
     area: "東北",
     product: "CRMシステム",
@@ -540,7 +510,6 @@ const mockDeals: Deal[] = [
     expectedCloseDate: "2025-10-15",
     createdAt: "2025-09-01",
     updatedAt: "2025-10-15",
-    tags: [mockTags[3]],
     description: "既存システムとWeb会議ツールの連携",
     area: "北海道",
     product: "クラウドサービス",
@@ -560,7 +529,6 @@ const mockDeals: Deal[] = [
     expectedCloseDate: "2026-04-30",
     createdAt: "2025-10-18",
     updatedAt: "2025-11-16",
-    tags: [mockTags[0], mockTags[2]],
     description: "医薬品サプライチェーンの可視化・最適化",
     area: "九州",
     product: "データ分析基盤",
@@ -627,7 +595,6 @@ const mockCustomReports: CustomReport[] = [
 class DealsStore {
   private deals: Deal[] = mockDeals
   private filterConditions: FilterCondition[] = mockFilterConditions
-  private tags: Tag[] = mockTags
   private customReports: CustomReport[] = mockCustomReports
 
   getDeals(): Deal[] {
@@ -682,10 +649,6 @@ class DealsStore {
     return newCondition
   }
 
-  getTags(): Tag[] {
-    return this.tags
-  }
-
   filterDeals(condition: FilterCondition): Deal[] {
     let filtered = [...this.deals]
 
@@ -712,11 +675,6 @@ class DealsStore {
     }
     if (filters.team && filters.team.length > 0) {
       filtered = filtered.filter(deal => deal.team && filters.team!.includes(deal.team))
-    }
-    if (filters.tags && filters.tags.length > 0) {
-      filtered = filtered.filter(deal =>
-        deal.tags.some(tag => filters.tags!.includes(tag.id))
-      )
     }
 
     // ソート
@@ -1026,11 +984,6 @@ class DealsStore {
     if (filters.team && filters.team.length > 0) {
       filtered = filtered.filter(deal => deal.team && filters.team!.includes(deal.team))
     }
-    if (filters.tags && filters.tags.length > 0) {
-      filtered = filtered.filter(deal =>
-        deal.tags.some(tag => filters.tags!.includes(tag.id))
-      )
-    }
     if (filters.dateRange?.start) {
       filtered = filtered.filter(deal => deal.expectedCloseDate >= filters.dateRange!.start!)
     }
@@ -1149,8 +1102,6 @@ class DealsStore {
         return deal.createdAt.substring(0, 10)
       case 'updatedAt':
         return deal.updatedAt.substring(0, 10)
-      case 'tags':
-        return deal.tags.length > 0 ? deal.tags.map(t => t.name).join(', ') : 'タグなし'
       default:
         return 'その他'
     }

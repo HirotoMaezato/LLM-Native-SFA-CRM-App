@@ -1,5 +1,3 @@
-import { Tag } from "./deal"
-
 export type AccountStatus = "活動中" | "休止" | "見込み" | "提携"
 
 export type AccountIndustry = "IT" | "製造" | "金融" | "物流" | "医療" | "建設" | "農業" | "観光" | "小売" | "その他"
@@ -19,7 +17,6 @@ export interface Account {
   status: AccountStatus
   createdAt: string
   updatedAt: string
-  tags: Tag[]
   description?: string
   notes?: string
 }
@@ -33,7 +30,6 @@ export interface AccountFilterCondition {
     region?: string[]
     minRevenue?: number
     maxRevenue?: number
-    tags?: string[]
   }
   sortBy?: keyof Account
   sortOrder?: "asc" | "desc"
