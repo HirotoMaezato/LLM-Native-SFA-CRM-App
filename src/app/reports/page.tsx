@@ -230,7 +230,10 @@ export default function ReportsPage() {
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, percent }) => `${name} ${percent ? (percent * 100).toFixed(0) : 0}%`}
+                label={({ name, percent }: { name?: string; percent?: number }) => {
+                  const percentValue = typeof percent === 'number' ? (percent * 100).toFixed(0) : '0'
+                  return `${name || ''} ${percentValue}%`
+                }}
                 outerRadius={80}
                 fill="#8884d8"
                 dataKey={metricKeys[0]}
@@ -612,7 +615,10 @@ export default function ReportsPage() {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ name, percent }) => `${name} ${percent ? (percent * 100).toFixed(0) : 0}%`}
+                        label={({ name, percent }: { name?: string; percent?: number }) => {
+                          const percentValue = typeof percent === 'number' ? (percent * 100).toFixed(0) : '0'
+                          return `${name || ''} ${percentValue}%`
+                        }}
                         outerRadius={80}
                         fill="#8884d8"
                         dataKey="value"

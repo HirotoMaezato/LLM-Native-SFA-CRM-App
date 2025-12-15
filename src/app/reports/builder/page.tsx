@@ -123,7 +123,7 @@ export default function ReportBuilderPage() {
   const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilter[]>([])
 
   // Sorting and limit state
-  const [sortBy, setSortBy] = useState<string>("")
+  const [sortBy, setSortBy] = useState<string>("_none")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc")
   const [limit, setLimit] = useState<string>("")
 
@@ -378,8 +378,8 @@ export default function ReportBuilderPage() {
     metrics: metrics.length > 1 ? metrics : undefined,
     calculatedFields: calculatedFields.length > 0 ? calculatedFields : undefined,
     advancedFilters: advancedFilters.length > 0 ? advancedFilters : undefined,
-    sortBy: sortBy || undefined,
-    sortOrder: sortBy ? sortOrder : undefined,
+    sortBy: sortBy && sortBy !== "_none" ? sortBy : undefined,
+    sortOrder: sortBy && sortBy !== "_none" ? sortOrder : undefined,
     limit: limit ? parseInt(limit) : undefined
   })
 
@@ -499,7 +499,10 @@ export default function ReportBuilderPage() {
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, percent }) => `${name} ${percent ? (percent * 100).toFixed(0) : 0}%`}
+                label={({ name, percent }: { name?: string; percent?: number }) => {
+                  const percentValue = typeof percent === 'number' ? (percent * 100).toFixed(0) : '0'
+                  return `${name || ''} ${percentValue}%`
+                }}
                 outerRadius={80}
                 fill="#8884d8"
                 dataKey={metricKeys[0]}
@@ -1639,7 +1642,7 @@ export default function ReportBuilderPage() {
                         <SelectValue placeholder="なし" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">なし</SelectItem>
+                        <SelectItem value="_none">なし</SelectItem>
                         {metrics.map(m => (
                           <SelectItem key={m.label || m.field} value={m.label || `${m.type}_${m.field}`}>
                             {m.label || `${m.type}_${m.field}`}
@@ -1653,7 +1656,7 @@ export default function ReportBuilderPage() {
                     <Select
                       value={sortOrder}
                       onValueChange={(value) => setSortOrder(value as "asc" | "desc")}
-                      disabled={!sortBy}
+                      disabled={!sortBy || sortBy === "_none"}
                     >
                       <SelectTrigger className="h-9 mt-1">
                         <SelectValue />
