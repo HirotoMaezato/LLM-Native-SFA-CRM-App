@@ -499,9 +499,9 @@ export default function ReportBuilderPage() {
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, percent }: { name: string; percent?: number }) => {
+                label={({ name, percent }: { name?: string; percent?: number }) => {
                   const percentValue = typeof percent === 'number' ? (percent * 100).toFixed(0) : '0'
-                  return `${name} ${percentValue}%`
+                  return `${name || ''} ${percentValue}%`
                 }}
                 outerRadius={80}
                 fill="#8884d8"
