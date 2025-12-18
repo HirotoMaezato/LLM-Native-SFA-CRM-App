@@ -3,10 +3,26 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { User, Bell, Shield, Palette, Database, Info, ArrowLeft } from "lucide-react"
-import Link from "next/link"
+import { User, Bell, Shield, Palette, Database, Info, LogOut } from "lucide-react"
+import { useCurrentUser, useLogout } from "@/components/auth/auth-guard"
 
 export default function SettingsPage() {
+  const currentUser = useCurrentUser()
+  const logout = useLogout()
+
+  const getRoleBadge = (role: string) => {
+    switch (role) {
+      case "admin":
+        return <Badge variant="default">管理者</Badge>
+      case "manager":
+        return <Badge variant="secondary">マネージャー</Badge>
+      case "sales":
+        return <Badge variant="outline">営業</Badge>
+      default:
+        return <Badge variant="outline">{role}</Badge>
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto p-4 space-y-4">
@@ -29,17 +45,39 @@ export default function SettingsPage() {
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">営業太郎</p>
-                <p className="text-sm text-muted-foreground">sales@company.co.jp</p>
+                <p className="font-medium">{currentUser?.name || "ゲスト"}</p>
+                <p className="text-sm text-muted-foreground">{currentUser?.email || ""}</p>
               </div>
               <Button variant="outline" size="sm" disabled>
                 編集
               </Button>
             </div>
             <div className="pt-2">
-              <p className="text-sm text-muted-foreground">所属チーム</p>
-              <Badge variant="secondary" className="mt-1">第一営業部</Badge>
+              <p className="text-sm text-muted-foreground">役割</p>
+              <div className="mt-1">
+                {currentUser && getRoleBadge(currentUser.role)}
+              </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* ログアウト */}
+        <Card className="border-destructive/50">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <LogOut className="h-5 w-5 text-destructive" />
+              <CardTitle>ログアウト</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Button
+              variant="destructive"
+              className="w-full"
+              onClick={logout}
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              ログアウト
+            </Button>
           </CardContent>
         </Card>
 
