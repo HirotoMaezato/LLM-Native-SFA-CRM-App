@@ -1,5 +1,8 @@
 import { Tag } from "./deal"
 
+// Re-export Tag for convenience
+export type { Tag }
+
 export type AccountStatus = "活動中" | "休止" | "見込み" | "提携"
 
 export type AccountIndustry = "IT" | "製造" | "金融" | "物流" | "医療" | "建設" | "農業" | "観光" | "小売" | "その他"
