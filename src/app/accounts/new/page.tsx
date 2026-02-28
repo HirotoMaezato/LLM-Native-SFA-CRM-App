@@ -4,17 +4,14 @@ import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import { accountsStore } from "@/lib/store/accounts"
 import { AccountStatus, AccountIndustry } from "@/types/account"
-import { Tag } from "@/types/deal"
 import { ArrowLeft, Save } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
 export default function NewAccountPage() {
   const router = useRouter()
-  const allTags = accountsStore.getTags()
 
   const [formData, setFormData] = useState({
     name: "",
@@ -30,7 +27,6 @@ export default function NewAccountPage() {
     status: "活動中" as AccountStatus,
     description: "",
     notes: "",
-    selectedTags: [] as Tag[],
   })
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -53,21 +49,11 @@ export default function NewAccountPage() {
       annualRevenue: formData.annualRevenue ? Number(formData.annualRevenue) : undefined,
       address: formData.address || undefined,
       status: formData.status,
-      tags: formData.selectedTags,
       description: formData.description || undefined,
       notes: formData.notes || undefined,
     })
 
     router.push("/accounts")
-  }
-
-  const toggleTag = (tag: Tag) => {
-    setFormData(prev => ({
-      ...prev,
-      selectedTags: prev.selectedTags.find(t => t.id === tag.id)
-        ? prev.selectedTags.filter(t => t.id !== tag.id)
-        : [...prev.selectedTags, tag]
-    }))
   }
 
   return (
@@ -267,32 +253,6 @@ export default function NewAccountPage() {
                   placeholder="メモや特記事項を入力してください"
                   className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* タグ */}
-          <Card>
-            <CardHeader>
-              <CardTitle>タグ</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {allTags.map(tag => (
-                  <Badge
-                    key={tag.id}
-                    variant={formData.selectedTags.find(t => t.id === tag.id) ? "default" : "outline"}
-                    className="cursor-pointer"
-                    onClick={() => toggleTag(tag)}
-                    style={
-                      formData.selectedTags.find(t => t.id === tag.id)
-                        ? { backgroundColor: tag.color, borderColor: tag.color }
-                        : { borderColor: tag.color, color: tag.color }
-                    }
-                  >
-                    {tag.name}
-                  </Badge>
-                ))}
               </div>
             </CardContent>
           </Card>

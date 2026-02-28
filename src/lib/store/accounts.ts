@@ -1,15 +1,6 @@
 "use client"
 
 import { Account, AccountFilterCondition, AccountStatus, AccountIndustry } from "@/types/account"
-import { Tag } from "@/types/deal"
-
-// モックタグ
-const mockTags: Tag[] = [
-  { id: "1", name: "重要", color: "#ef4444" },
-  { id: "2", name: "至急", color: "#f59e0b" },
-  { id: "3", name: "大口", color: "#8b5cf6" },
-  { id: "4", name: "既存顧客", color: "#3b82f6" },
-]
 
 // モックアカウントデータ（商談データに基づく会社）
 const mockAccounts: Account[] = [
@@ -28,7 +19,6 @@ const mockAccounts: Account[] = [
     status: "活動中",
     createdAt: "2025-01-15",
     updatedAt: "2025-11-15",
-    tags: [mockTags[0], mockTags[3]],
     description: "ITソリューション提供企業",
     notes: "長期取引先、決裁が早い"
   },
@@ -47,7 +37,6 @@ const mockAccounts: Account[] = [
     status: "活動中",
     createdAt: "2025-02-01",
     updatedAt: "2025-11-10",
-    tags: [mockTags[3]],
     description: "デジタルマーケティング支援",
   },
   {
@@ -65,7 +54,6 @@ const mockAccounts: Account[] = [
     status: "活動中",
     createdAt: "2025-03-01",
     updatedAt: "2025-11-17",
-    tags: [mockTags[0], mockTags[2]],
     description: "国際貿易・物流サービス",
     notes: "大型案件の可能性あり"
   },
@@ -84,7 +72,6 @@ const mockAccounts: Account[] = [
     status: "活動中",
     createdAt: "2025-01-20",
     updatedAt: "2025-11-16",
-    tags: [mockTags[0], mockTags[2]],
     description: "電機製品製造メーカー",
   },
   {
@@ -102,7 +89,6 @@ const mockAccounts: Account[] = [
     status: "活動中",
     createdAt: "2025-04-01",
     updatedAt: "2025-11-14",
-    tags: [mockTags[3]],
     description: "食品販売・EC事業",
   },
   {
@@ -120,7 +106,6 @@ const mockAccounts: Account[] = [
     status: "活動中",
     createdAt: "2025-02-15",
     updatedAt: "2025-11-17",
-    tags: [mockTags[0], mockTags[2]],
     description: "物流・倉庫サービス",
     notes: "契約間近"
   },
@@ -139,7 +124,6 @@ const mockAccounts: Account[] = [
     status: "活動中",
     createdAt: "2025-05-01",
     updatedAt: "2025-11-15",
-    tags: [mockTags[0]],
     description: "農業IoT・スマート農業",
   },
   {
@@ -157,7 +141,6 @@ const mockAccounts: Account[] = [
     status: "活動中",
     createdAt: "2025-03-15",
     updatedAt: "2025-10-31",
-    tags: [mockTags[3]],
     description: "地域観光振興",
   },
   {
@@ -175,7 +158,6 @@ const mockAccounts: Account[] = [
     status: "活動中",
     createdAt: "2025-01-10",
     updatedAt: "2025-11-17",
-    tags: [mockTags[0], mockTags[2]],
     description: "重工業・機械製造",
     notes: "大型DX案件検討中"
   },
@@ -194,7 +176,6 @@ const mockAccounts: Account[] = [
     status: "活動中",
     createdAt: "2025-04-15",
     updatedAt: "2025-11-16",
-    tags: [mockTags[3]],
     description: "物流倉庫・配送サービス",
   },
   {
@@ -212,7 +193,6 @@ const mockAccounts: Account[] = [
     status: "活動中",
     createdAt: "2025-02-20",
     updatedAt: "2025-11-17",
-    tags: [mockTags[0]],
     description: "観光事業・旅行サービス",
     notes: "インバウンド需要増加中"
   },
@@ -231,7 +211,6 @@ const mockAccounts: Account[] = [
     status: "活動中",
     createdAt: "2025-01-05",
     updatedAt: "2025-11-17",
-    tags: [mockTags[0], mockTags[2]],
     description: "地方銀行",
     notes: "CRM刷新案件が進行中"
   },
@@ -250,7 +229,6 @@ const mockAccounts: Account[] = [
     status: "活動中",
     createdAt: "2025-03-10",
     updatedAt: "2025-11-15",
-    tags: [mockTags[0], mockTags[2]],
     description: "自動車部品製造",
   },
   {
@@ -268,7 +246,6 @@ const mockAccounts: Account[] = [
     status: "活動中",
     createdAt: "2025-04-01",
     updatedAt: "2025-11-16",
-    tags: [mockTags[0], mockTags[2]],
     description: "港湾物流・コンテナ輸送",
   },
   {
@@ -283,7 +260,6 @@ const mockAccounts: Account[] = [
     status: "休止",
     createdAt: "2024-01-01",
     updatedAt: "2024-06-01",
-    tags: [],
     description: "テスト用休止アカウント",
   },
 ]
@@ -314,7 +290,6 @@ const mockFilterConditions: AccountFilterCondition[] = [
 class AccountsStore {
   private accounts: Account[] = mockAccounts
   private filterConditions: AccountFilterCondition[] = mockFilterConditions
-  private tags: Tag[] = mockTags
 
   getAccounts(): Account[] {
     return this.accounts
@@ -368,10 +343,6 @@ class AccountsStore {
     return newCondition
   }
 
-  getTags(): Tag[] {
-    return this.tags
-  }
-
   filterAccounts(condition: AccountFilterCondition): Account[] {
     let filtered = [...this.accounts]
 
@@ -392,11 +363,6 @@ class AccountsStore {
     }
     if (filters.maxRevenue !== undefined) {
       filtered = filtered.filter(account => account.annualRevenue && account.annualRevenue <= filters.maxRevenue!)
-    }
-    if (filters.tags && filters.tags.length > 0) {
-      filtered = filtered.filter(account =>
-        account.tags.some(tag => filters.tags!.includes(tag.id))
-      )
     }
 
     // ソート

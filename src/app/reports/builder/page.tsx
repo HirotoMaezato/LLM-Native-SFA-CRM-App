@@ -170,7 +170,6 @@ export default function ReportBuilderPage() {
   const allAreas = dealsStore.getAreas()
   const allProducts = dealsStore.getProducts()
   const allTeams = dealsStore.getTeams()
-  const allTags = dealsStore.getTags()
 
   const steps: { key: Step; label: string; number: number }[] = [
     { key: "chart", label: "グラフ", number: 1 },
@@ -209,7 +208,6 @@ export default function ReportBuilderPage() {
     { field: "contactPerson", label: "担当者", description: "顧客担当者別" },
     { field: "createdAt", label: "作成日", description: "案件作成日別" },
     { field: "updatedAt", label: "更新日", description: "案件更新日別" },
-    { field: "tags", label: "タグ", description: "タグ別の分類" },
   ]
 
   const availableMetrics: { type: MetricType; field: MetricField; label: string; description: string }[] = [

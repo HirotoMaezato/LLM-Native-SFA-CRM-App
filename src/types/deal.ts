@@ -2,12 +2,6 @@ export type DealStatus = "新規" | "アプローチ中" | "提案" | "商談中
 
 export type DealPriority = "高" | "中" | "低"
 
-export interface Tag {
-  id: string
-  name: string
-  color: string
-}
-
 export interface Deal {
   id: string
   title: string
@@ -22,7 +16,6 @@ export interface Deal {
   expectedCloseDate: string
   createdAt: string
   updatedAt: string
-  tags: Tag[]
   description?: string
   area?: string
   product?: string
@@ -41,7 +34,6 @@ export interface FilterCondition {
     area?: string[]
     product?: string[]
     team?: string[]
-    tags?: string[]
   }
   sortBy?: keyof Deal
   sortOrder?: "asc" | "desc"
@@ -66,7 +58,7 @@ export interface Trigger {
 export type ChartType = "bar" | "pie" | "line" | "area" | "scatter" | "radar" | "funnel" | "stackedBar" | "stackedArea" | "table"
 
 // Extended dimension field to include all Deal fields
-export type DimensionField = "status" | "area" | "product" | "team" | "priority" | "month" | "quarter" | "year" | "company" | "contactPerson" | "expectedCloseDate" | "createdAt" | "updatedAt" | "tags"
+export type DimensionField = "status" | "area" | "product" | "team" | "priority" | "month" | "quarter" | "year" | "company" | "contactPerson" | "expectedCloseDate" | "createdAt" | "updatedAt"
 
 export type MetricType = "count" | "sum" | "average" | "min" | "max" | "custom"
 
@@ -120,7 +112,6 @@ export interface CustomReportConfig {
     area?: string[]
     product?: string[]
     team?: string[]
-    tags?: string[]
     dateRange?: {
       start?: string
       end?: string

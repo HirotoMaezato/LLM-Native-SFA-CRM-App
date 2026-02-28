@@ -138,22 +138,6 @@ export default function DealsPage() {
                     </span>
                   </div>
 
-                  {/* タグ */}
-                  {deal.tags.length > 0 && (
-                    <div className="flex gap-2 flex-wrap">
-                      {deal.tags.map(tag => (
-                        <Badge
-                          key={tag.id}
-                          variant="outline"
-                          className="text-xs"
-                          style={{ borderColor: tag.color, color: tag.color }}
-                        >
-                          {tag.name}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-
                   {/* メタ情報 */}
                   <div className="flex gap-4 text-xs text-muted-foreground">
                     {deal.area && <span>📍 {deal.area}</span>}
